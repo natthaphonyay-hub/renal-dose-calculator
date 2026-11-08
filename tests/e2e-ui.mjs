@@ -69,9 +69,10 @@ const H = String.raw`
       const c = document.querySelector('[data-card="' + card + '"]');
       const q = s => c.querySelector(s);
       return {
-        rec: q('.rec-box .rmain') ? q('.rec-box .rmain').textContent : null,
-        flags: [...c.querySelectorAll('.flag')].map(f => f.className.replace('flag', '').trim() + ':' + f.textContent),
-        nodata: !!q('[data-result] .msg .lab') && q('[data-result] .msg .lab').textContent === 'ยังไม่รองรับ',
+        rec: q('.rmain') ? q('.rmain').dataset.full : null,
+        verdict: q('.verdict') ? q('.verdict').className.replace('verdict', '').trim() : null,
+        flags: [...c.querySelectorAll('.flag')].map(f => f.className.replace('flag', '').trim()),
+        nodata: !!q('.verdict.nodata'),
         choices: [...c.querySelectorAll('[data-choice]:checked')].map(i => i.dataset.choice + '=' + i.value).sort(),
         note: document.querySelector('#noteCard').hidden ? null : document.querySelector('#note').textContent,
         assess: document.querySelector('#assessDate').value, scrDate: document.querySelector('#scrDate').value,
@@ -110,8 +111,9 @@ for (let i = 0; i < N; i++) {
   await ev(`__t.click('button[data-dial="${c.p.dial}"]')`);
   await ev(`__t.type('#age', '${c.p.age}')`); await ev(`__t.type('#height', '${c.p.height}')`); await ev(`__t.type('#weight', '${c.p.weight}')`);
   if (c.p.dial === 'none') await ev(`__t.type('#scr', '${c.p.scr}')`);
-  if (c.item.liver) await ev(`__t.click('#liver')`);
   await ev(`__t.pick('[data-card="${card}"] [data-f="drug"]', '${c.item.drug}')`);
+  if (c.item.drug !== 'ceftriaxone') c.item.liver = false; // ช่องตับมีเฉพาะการ์ด ceftriaxone
+  if (c.item.liver) await ev(`__t.click('[data-card="${card}"] [data-f="liver"]')`);
   await ev(`__t.type('[data-card="${card}"] [data-f="ud"]', '${c.item.usual.d}')`);
   await ev(`__t.pick('[data-card="${card}"] [data-f="uq"]', '${c.item.usual.q}')`);
   await ev(`__t.type('[data-card="${card}"] [data-f="od"]', '${c.item.ordered.d}')`);
@@ -129,7 +131,7 @@ for (let i = 0; i < N; i++) {
     res = E.drugRec(c.item, k);
   }
   if (c.edit && res.reg && !res.nodata) {
-    await ev(`document.querySelector('[data-card="${card}"] details.edit').open = true`);
+    await ev(`document.querySelector('[data-card="${card}"] details[data-edit]').open = true`);
     if (res.reg.q !== null) await ev(`__t.pick('[data-card="${card}"] [data-f="eq"]', '${c.edit.q}')`);
     await ev(`__t.type('[data-card="${card}"] [data-f="ed"]', '${c.edit.d}')`);
     c.item.edit = { d: c.edit.d, q: res.reg.q === null ? null : c.edit.q };
@@ -147,11 +149,10 @@ for (let i = 0; i < N; i++) {
   else if (got.rec !== E.regText(c.item.drug, res.reg)) fail('ขนาดที่แนะนำบนจอ', { case: c, got: got.rec, want: E.regText(c.item.drug, res.reg) });
   if (got.note !== wantNote) fail('note', { case: c, got: got.note, want: wantNote });
   if (got.note && (!SAFE.test(got.note) || BAD.test(got.note))) fail('note มีอักษรต้องห้ามหรือคำว่า undefined NaN', got.note);
-  const wantFlags = [];
-  if (!res.nodata) wantFlags.push((res.chip || 'plain') + ':');
-  for (const f of res.flags) wantFlags.push(f.color + ':');
-  const gotFlags = got.flags.filter(f => !f.startsWith('plain:') || !res.info.some(t => f === 'plain:' + t)).map(f => f.split(':')[0] + ':');
-  if (JSON.stringify(gotFlags) !== JSON.stringify(wantFlags)) fail('ป้ายเทียบคำสั่ง', { case: c, got: got.flags, want: wantFlags });
+  const wantVerdict = res.nodata ? 'nodata' : res.status;
+  if (got.verdict !== wantVerdict) fail('แถบสรุปผล', { case: c, got: got.verdict, want: wantVerdict });
+  const wantFlags = res.flags.map(f => f.color);
+  if (JSON.stringify(got.flags) !== JSON.stringify(wantFlags)) fail('ป้ายเตือน', { case: c, got: got.flags, want: wantFlags });
   const wantChoices = res.choices.map(ch => `${ch.key}=${ch.value}`).sort();
   if (JSON.stringify(got.choices) !== JSON.stringify(wantChoices)) fail('ตัวเลือก', { case: c, got: got.choices, want: wantChoices });
 }
