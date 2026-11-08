@@ -44,6 +44,7 @@
 
   .card { background: var(--label); border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
   .band { background: var(--tool); color: var(--tool-ink); font: 700 12px var(--mono); letter-spacing: 0.08em; padding: 6px 12px; display: flex; justify-content: space-between; gap: 8px; text-transform: uppercase; border-bottom: 1.5px solid var(--ink); }
+  .band h2 { font: inherit; letter-spacing: inherit; margin: 0; }
   .card-body { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
   .card h2 { font-size: var(--fs-card); font-weight: 800; line-height: 1.35; }
   .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -109,7 +110,10 @@
   .flag.blue { background: var(--blue); border: 2px solid var(--blue-line); color: #fff; }
   .flag.plain { background: var(--paper); border: 1.5px solid var(--line); }
   details.edit { border-top: 1px dashed var(--rule); padding-top: 4px; }
-  details.edit summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; font-size: var(--fs-sm); cursor: pointer; }
+  details.edit summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: var(--fs-sm); cursor: pointer; list-style: none; }
+  details.edit summary::-webkit-details-marker { display: none; }
+  details.edit summary::before { content: '+'; display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--ink); border-radius: 3px; font: 700 14px var(--mono); }
+  details.edit[open] summary::before { content: '-'; }
   .editor { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; padding-bottom: 4px; }
   .editor .field { flex: 1 1 140px; }
   .card-tools { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -120,7 +124,7 @@
   .footer { background: var(--ink); color: #e9ece9; margin-top: 8px; padding: 18px 16px 40px; }
   .footer-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
   .footer-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-  .footer h3 { font-size: 17px; font-weight: 800; }
+  .footer .ftitle { font-size: 17px; font-weight: 800; }
   .footer .fsub { font-size: var(--fs-cap); opacity: 0.8; }
   .footer .credit { text-align: right; font-size: var(--fs-cap); }
   .footer .org { font-family: var(--mono); font-weight: 700; font-size: 15px; }
@@ -153,7 +157,7 @@
   <div class="msg" role="note"><div class="lab">รอบทดลอง ยังไม่ยืนยัน</div><p>ขนาดยาทุกค่ามาจากฉลากยาและแหล่งที่เปิดฟรี ยังไม่ได้ให้เภสัชกรที่เปิดแหล่งมาตรฐานของโรงพยาบาลตรวจ ตรวจกับแหล่งของโรงพยาบาลก่อนใช้กับผู้ป่วย</p></div>
 
   <div class="card">
-    <div class="band"><span>Patient</span><span>Adult</span></div>
+    <div class="band"><h2>Patient</h2><span>Adult</span></div>
     <div class="card-body">
       <div class="fields">
         <div class="field">
@@ -196,7 +200,7 @@
   <div id="akiMsg" class="msg" role="note" hidden><div class="lab">ข้อควรระวัง</div><p>SCr ยังไม่คงที่ ค่า CrCl จากสูตรอาจคลาดเคลื่อน ฉลาก ceftazidime ระบุว่า SCr ที่ใช้ควรเป็นค่าตอนการทำงานของไตคงที่</p></div>
 
   <div class="card" id="kCard" hidden>
-    <div class="band"><span>Renal function</span><span id="kBand">Cockcroft-Gault</span></div>
+    <div class="band"><h2>Renal function</h2><span id="kBand">Cockcroft-Gault</span></div>
     <div class="card-body" id="kBody"></div>
   </div>
 
@@ -204,7 +208,7 @@
   <button type="button" class="btn" id="addDrug">เพิ่มยา</button>
 
   <div class="card" id="noteCard" hidden>
-    <div class="band"><span>Pharmacist note</span><span>Copy and paste</span></div>
+    <div class="band"><h2>Pharmacist note</h2><span>Copy and paste</span></div>
     <div class="card-body">
       <div class="note-actions">
         <p class="small">ข้อความใช้แค่อักษรอังกฤษกับไทย วางในระบบโรงพยาบาลได้</p>
@@ -219,7 +223,7 @@
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-top">
-      <div><h3>Renal Dose Calculator</h3><div class="fsub">Renal Dose Adjustment Tool</div></div>
+      <div><h2 class="ftitle">Renal Dose Calculator</h2><div class="fsub">Renal Dose Adjustment Tool</div></div>
       <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 0.1 รอบทดลอง | November 2026</div></div>
     </div>
     <div class="legal">ขนาดยาตามฉลากยา DailyMed สหรัฐ เอกสารกำกับยาอังกฤษ emc แนวทาง IDSA 2009 และตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ตามลำดับแหล่ง ทุกค่ายังไม่ยืนยัน เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
@@ -593,7 +597,7 @@ function drugCardShell(it) {
   const ordLab = D.unit.startsWith('amc') ? 'ขนาดที่แพทย์สั่ง (mg amoxicillin)' : 'ขนาดที่แพทย์สั่ง (mg)';
   return `
   <div class="card" data-card="${it.id}">
-    <div class="band"><span>${esc(D.name)}</span><span>${esc(D.route)}</span></div>
+    <div class="band"><h2>${esc(D.name)}</h2><span>${esc(D.route)}</span></div>
     <div class="card-body">
       <div class="fields f2">
         <div class="field"><label for="drug${it.id}">ยา</label><select id="drug${it.id}" data-f="drug">${DRUG_ORDER.map(k => `<option value="${k}"${k === it.drug ? ' selected' : ''}>${esc(DRUG_LABEL[k])}</option>`).join('')}</select></div>
