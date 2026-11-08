@@ -14,7 +14,7 @@ export function loadEngine() {
   };
   return new Function(`${block('// DATA-START', '// DATA-END')}\n${block('// CALC-START', '// CALC-END')}
 return { kidney, classify, drugRec, compare, statusText, regText, buildNote, doseStr, thDate, r1, roundTo, ibw,
-  DRUGS, ROWS, INTERVALS, CEFTAZIDIME_TABLE, ACYCLOVIR_TABLE, EDIT_MARK };`)();
+  DRUGS, ROWS, INTERVALS, FIVE_DAILY, intervalsOf, qTxt, CEFTAZIDIME_TABLE, ACYCLOVIR_TABLE, ACYCLOVIR_PO_TABLE, EDIT_MARK };`)();
 }
 
 export const SAFE = /^[\n\x20-\x7E฀-๿]*$/;

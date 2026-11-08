@@ -22,7 +22,8 @@ N = int(sys.argv[1]) if len(sys.argv) > 1 else 40000
 SEED = int(sys.argv[2]) if len(sys.argv) > 2 else 20261108
 rnd = random.Random(SEED)
 INTERVALS = [4, 6, 8, 12, 24, 48]
-DRUGS = ["ceftriaxone", "cefazolin", "ceftazidime", "acyclovir", "amoxclav_iv", "amoxclav_po"]
+DRUGS = ["ceftriaxone", "cefazolin", "ceftazidime", "acyclovir", "acyclovir_po", "amoxclav_iv", "amoxclav_po"]
+IV_PO = [4.8, 4, 6, 8, 12, 24, 48]  # acyclovir กินมี 5 ครั้งต่อวัน (4.8)
 SEL = {"row": ["upper", "lower", "x"], "ctype": ["norm", "raw", "x"], "wt": ["adj", "ibw", "x"], "path": ["idsa", "fogel", "label", "shc", "x"]}
 
 
@@ -34,6 +35,8 @@ def r(lo, hi, step):
 def dose_for(drug, usual):
     if drug == "acyclovir":
         return rnd.choice([5, 10, 7.5, 15, 10, 5]) if usual else r(100, 1600, 50)
+    if drug == "acyclovir_po":
+        return rnd.choice([200, 400, 800, 800, 200, 600]) if usual else rnd.choice([200, 400, 800, 800, 1000])
     if drug == "amoxclav_iv":
         return rnd.choice([1000, 1000, 500, 1200, 2000])
     if drug == "amoxclav_po":
@@ -57,8 +60,8 @@ def make_case():
         p["sex"] = None
     drug = rnd.choice(DRUGS)
     item = {"drug": drug,
-            "usual": {"d": dose_for(drug, True), "q": rnd.choice(INTERVALS)},
-            "ordered": {"d": dose_for(drug, False), "q": rnd.choice(INTERVALS)},
+            "usual": {"d": dose_for(drug, True), "q": rnd.choice([4.8, 12, 4.8, 8]) if drug == "acyclovir_po" else rnd.choice(INTERVALS)},
+            "ordered": {"d": dose_for(drug, False), "q": rnd.choice(IV_PO) if drug == "acyclovir_po" else rnd.choice(INTERVALS)},
             "sel": {k: rnd.choice(v) for k, v in SEL.items() if rnd.random() < 0.5},
             "severe": rnd.choice([None, None, True, False]),
             "liver": rnd.random() < 0.3,
@@ -66,7 +69,7 @@ def make_case():
     if rnd.random() < 0.2:
         item["usual"]["q"] = 8
     if rnd.random() < 0.1:
-        item["edit"] = {"d": r(100, 2000, 50), "q": rnd.choice(INTERVALS)}
+        item["edit"] = {"d": r(100, 2000, 50), "q": rnd.choice(IV_PO if drug == "acyclovir_po" else INTERVALS)}
     if rnd.random() < 0.02:
         item["ordered"]["d"] = 0
     return {"p": p, "item": item}

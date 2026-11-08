@@ -66,6 +66,57 @@ for (const [w, a, b] of table96) {
   eq(`9.6 น้ำหนักหลังฟอก ${w}`, [ra, rb], [a, b]);
 }
 
+// acyclovir กิน (พี่ขอ 2026-11-08 ข้อ 11.1 ก) ฉลากสหรัฐ Table 3 ค่าไตแบบตั้งเอง ให้ต่อ 1.73 กับไม่แปลงเท่ากัน ยกเว้นข้อที่ตั้งใจให้ต่าง
+{
+  const F5 = E.FIVE_DAILY;
+  const KK = (norm, raw = norm, dial = 'none') => ({ ok: true, dial, crcl: dial === 'none' ? raw : null, crclNorm: dial === 'none' ? norm : null, w: 60, ibw: 60, adjbw: 60, obese: false, bmi: 22 });
+  const po = (ud, uq, od, oq, extra) => it('acyclovir_po', ud, uq, od, oq, extra);
+  const g = r => [r.reg ? r.reg.dose : null, r.reg ? r.reg.q : null, r.reg ? r.reg.hd : null];
+  eq('po 800 CrCl 30 ขนาดเดิม', g(E.drugRec(po(800, F5, 800, F5), KK(30))), [800, F5, null]);
+  eq('po 800 CrCl 25 พอดี แถว 10-25', g(E.drugRec(po(800, F5, 800, F5), KK(25))), [800, 8, null]);
+  eq('po 800 CrCl 25.1 ขนาดเดิม', g(E.drugRec(po(800, F5, 800, F5), KK(25.1))), [800, F5, null]);
+  eq('po 800 CrCl 20', g(E.drugRec(po(800, F5, 800, F5), KK(20))), [800, 8, null]);
+  r = E.drugRec(po(800, F5, 800, F5), KK(10));
+  // ค่าเท่ากันแต่อยู่ 2 แถว (ซ้อนที่ 10) จอถามทั้งค่าไตที่ใช้และแถว เหมือน acyclovir ฉีด ตามสเปก
+  eq('po 800 CrCl 10 ซ้อน 2 แถว แนะนำแถวขนาดสูงกว่า', [r.choices.map(c => c.key + '=' + c.value), g(r)], [['ctype=norm', 'row=upper'], [800, 8, null]]);
+  eq('po 800 CrCl 10 เลือกแถวล่าง', g(E.drugRec(po(800, F5, 800, F5, { sel: { row: 'lower' } }), KK(10))), [800, 12, null]);
+  eq('po 800 CrCl 5', g(E.drugRec(po(800, F5, 800, F5), KK(5))), [800, 12, null]);
+  eq('po 200 CrCl 10.1 ขนาดเดิม', g(E.drugRec(po(200, F5, 200, F5), KK(10.1))), [200, F5, null]);
+  eq('po 200 CrCl 10 แถว 0-10', g(E.drugRec(po(200, F5, 200, F5), KK(10))), [200, 12, null]);
+  eq('po 400 CrCl 50', g(E.drugRec(po(400, 12, 400, 12), KK(50))), [400, 12, null]);
+  eq('po 400 CrCl 8', g(E.drugRec(po(400, 12, 400, 12), KK(8))), [200, 12, null]);
+  r = E.drugRec(po(800, F5, 800, F5), KK(26, 24));
+  eq('po ต่อ 1.73 กับไม่แปลงคนละแถว แนะนำต่อ 1.73', [r.choices.map(c => c.key + '=' + c.value), g(r)], [['ctype=norm'], [800, F5, null]]);
+  eq('po เลือก CrCl ไม่แปลง', g(E.drugRec(po(800, F5, 800, F5, { sel: { ctype: 'raw' } }), KK(26, 24))), [800, 8, null]);
+  r = E.drugRec(po(800, F5, 800, F5), KK(null, null, 'HD'));
+  eq('po HD 800', [g(r), r.status, E.regText('acyclovir_po', r.reg)], [[800, 12, 'extraAfter'], 'review', 'Acyclovir 800 mg oral q 12 hr และให้เพิ่ม 800 mg หลังฟอกเลือดเสร็จทุกครั้ง']);
+  eq('po HD 400', g(E.drugRec(po(400, 12, 400, 12), KK(null, null, 'HD'))), [200, 12, 'extraAfter']);
+  r = E.drugRec(po(800, F5, 800, F5), KK(null, null, 'CAPD'));
+  eq('po CAPD 800 ไม่ต้องให้เพิ่ม', [g(r), r.status], [[800, 12, null], 'high']);
+  eq('po APD 200', g(E.drugRec(po(200, F5, 200, F5), KK(null, null, 'APD'))), [200, 12, null]);
+  r = E.drugRec(po(400, 8, 400, 8), KK(40));
+  eq('po ขนาดปกติไม่มีในฉลาก', [r.ok, r.nodata, r.reg, r.statusText], [true, true, null, 'ขนาดที่สั่งไม่มีในตารางปรับขนาดตามไตของฉลาก']);
+  r = E.drugRec(po(800, F5, 800, 8), KK(20));
+  eq('po สั่ง 800 q 8 hr ที่ CrCl 20 ตรงแล้ว', [r.status, r.statusText], ['ok', 'ขนาดเหมาะกับการทำงานของไตแล้ว']);
+  r = E.drugRec(po(800, F5, 800, F5), KK(20));
+  eq('po สั่ง 5 ครั้งต่อวันที่ CrCl 20 สูงกว่า', [r.status, E.regText('acyclovir_po', r.reg)], ['high', 'Acyclovir 800 mg oral q 8 hr']);
+  eq('po ข้อความ 5 ครั้งต่อวัน', E.regText('acyclovir_po', E.drugRec(po(800, F5, 800, F5), KK(30)).reg), 'Acyclovir 800 mg oral 5 ครั้งต่อวัน');
+  eq('5 ครั้งต่อวันใช้ไม่ได้กับยาอื่น', E.drugRec(it('cefazolin', 1000, F5, 1000, 8), KK(30)).ok, false);
+  const note = E.buildNote(P('M', 72, 55, 160, 2.1), K.A, [{ item: po(800, F5, 800, F5), res: E.drugRec(po(800, F5, 800, F5), K.A) }]);
+  eq('po note มีบรรทัดอ้างอิงชนิดกินและ CrCl ต่อ 1.73', [note.includes('ฉลากยา Acyclovir ชนิดกิน (DailyMed สหรัฐ)'), note.includes('CrCl ต่อ 1.73 ตร.ม. 28.3') || note.includes('- Acyclovir 800 mg oral 5 ครั้งต่อวัน'), SAFE.test(note), BAD.test(note)], [true, true, true, false]);
+}
+
+// 9.9 acyclovir กิน คนจริง ชาย 80 ปี 60 kg 165 cm SCr 2.6 (ตัวอย่างในสเปก)
+{
+  const k = E.kidney(P('M', 80, 60, 165, 2.6));
+  const item = it('acyclovir_po', 800, E.FIVE_DAILY, 800, E.FIVE_DAILY);
+  const res = E.drugRec(item, k);
+  eq('9.9 ค่าไต', [k.crcl, k.crclNorm], [19.7, 20.5]);
+  eq('9.9 แนะนำ', [res.reg.dose, res.reg.q, res.status, res.choices.length], [800, 8, 'high', 0]);
+  const note = E.buildNote(P('M', 80, 60, 165, 2.6), k, [{ item, res }]).split('\n');
+  eq('9.9 note บรรทัดยา', note.slice(-3), ['    - Acyclovir 800 mg oral 5 ครั้งต่อวัน ขนาดสูงกว่าที่แนะนำตามการทำงานของไต', '        - แนะนำ Acyclovir 800 mg oral q 8 hr (ช่วง CrCl 10-25)', '    - อ้างอิง ฉลากยา Acyclovir ชนิดกิน (DailyMed สหรัฐ)']);
+}
+
 // 9.7 CAPD
 const capd = E.kidney(P('F', 55, 52, 155, NaN, 'CAPD'));
 r = E.drugRec(it('ceftazidime', 1000, 8, 1000, 8), capd);

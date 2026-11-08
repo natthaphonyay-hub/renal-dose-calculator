@@ -8,7 +8,7 @@
 
 ## ขอบเขตรอบแรก
 
-- ยา: ceftriaxone, cefazolin, ceftazidime, acyclovir ฉีด, amoxicillin-clavulanate ฉีดและกิน
+- ยา: ceftriaxone, cefazolin, ceftazidime, acyclovir ฉีดและกิน, amoxicillin-clavulanate ฉีดและกิน
 - ผู้ป่วยอายุ 18 ปีขึ้นไป ไม่ฟอกไต ฟอกเลือด (HD) ล้างไตทางช่องท้อง (CAPD APD)
 - ไม่อยู่ในรอบนี้: การให้ยาทางน้ำยาล้างไต CRRT เด็ก eGFR
 

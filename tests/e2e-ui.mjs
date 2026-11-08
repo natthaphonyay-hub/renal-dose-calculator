@@ -91,10 +91,12 @@ function makeCase(i) {
   const drug = DR[i % DR.length];
   const std = E.DRUGS[drug].std;
   const u = pick(std);
-  const ordD = drug === 'acyclovir' ? step(150, 1200, 50) : pick([u[0], u[0], drug.startsWith('amoxclav') ? 875 : 2000, 500]);
+  const po = drug === 'acyclovir_po';
+  const ordD = drug === 'acyclovir' ? step(150, 1200, 50) : po ? pick([u[0], 200, 400, 800]) : pick([u[0], u[0], drug.startsWith('amoxclav') ? 875 : 2000, 500]);
   return {
     p: { sex: pick(['M', 'F']), age: step(18, 99, 1), weight: step(30, 180, 0.1), height: step(140, 195, 1), scr: step(0.4, 9, 0.01), dial },
-    item: { drug, usual: { d: u[0], q: u[1] }, ordered: { d: ordD, q: pick([u[1], 8, 12, 24]) }, sel: {}, edit: null, severe: null, liver: rnd() < 0.3 },
+    item: { drug, usual: { d: u[0], q: u[1] }, ordered: { d: ordD, q: po ? pick([u[1], E.FIVE_DAILY, 8, 12]) : pick([u[1], 8, 12, 24]) }, sel: {}, edit: null, severe: null, liver: rnd() < 0.3 },
+    clickStd: !po || rnd() < 0.7, // acyclovir กิน บางโจทย์ไม่กดขนาดปกติ ให้ขนาดปกติตามที่สั่งเอง
     choose: rnd() < 0.5, edit: rnd() < 0.15 ? { d: step(100, 1500, 50), q: pick([12, 24]) } : null,
   };
 }
@@ -114,10 +116,20 @@ for (let i = 0; i < N; i++) {
   await ev(`__t.pick('[data-card="${card}"] [data-f="drug"]', '${c.item.drug}')`);
   if (c.item.drug !== 'ceftriaxone') c.item.liver = false; // ช่องตับมีเฉพาะการ์ด ceftriaxone
   if (c.item.liver) await ev(`__t.click('[data-card="${card}"] [data-f="liver"]')`);
-  await ev(`__t.type('[data-card="${card}"] [data-f="ud"]', '${c.item.usual.d}')`);
-  await ev(`__t.pick('[data-card="${card}"] [data-f="uq"]', '${c.item.usual.q}')`);
-  await ev(`__t.type('[data-card="${card}"] [data-f="od"]', '${c.item.ordered.d}')`);
-  await ev(`__t.pick('[data-card="${card}"] [data-f="oq"]', '${c.item.ordered.q}')`);
+  if (E.DRUGS[c.item.drug].stdOnly) {
+    // ขนาดปกติเป็นปุ่มอย่างเดียว กรอกขนาดที่สั่งก่อน แล้วกดปุ่มขนาดปกติ (หรือไม่กด ให้ตามที่สั่ง)
+    await ev(`__t.type('[data-card="${card}"] [data-f="od"]', '${c.item.ordered.d}')`);
+    await ev(`__t.pick('[data-card="${card}"] [data-f="oq"]', '${c.item.ordered.q}')`);
+    if (c.clickStd) {
+      const ix = E.DRUGS[c.item.drug].std.findIndex(s => s[0] === c.item.usual.d && s[1] === c.item.usual.q);
+      await ev(`__t.click('[data-card="${card}"] button[data-std="${ix}"]')`);
+    } else c.item.usual = { d: c.item.ordered.d, q: c.item.ordered.q };
+  } else {
+    await ev(`__t.type('[data-card="${card}"] [data-f="ud"]', '${c.item.usual.d}')`);
+    await ev(`__t.pick('[data-card="${card}"] [data-f="uq"]', '${c.item.usual.q}')`);
+    await ev(`__t.type('[data-card="${card}"] [data-f="od"]', '${c.item.ordered.d}')`);
+    await ev(`__t.pick('[data-card="${card}"] [data-f="oq"]', '${c.item.ordered.q}')`);
+  }
   // ผลจากตัวคำนวณ ตัวเลือกแนะนำก่อน แล้วสลับตัวเลือกที่ไม่แนะนำถ้าสุ่มได้
   const p = Object.assign({}, c.p, { scr: c.p.dial === 'none' ? c.p.scr : NaN });
   const k = E.kidney(p);

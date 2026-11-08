@@ -10,6 +10,14 @@ from decimal import Decimal as D, getcontext, ROUND_HALF_UP, ROUND_FLOOR
 
 getcontext().prec = 60
 INTERVALS = (4, 6, 8, 12, 24, 48)
+FIVE = 4.8  # 5 ครั้งต่อวัน (acyclovir กิน) เก็บเป็นช่วงห่าง 24/5 ชม.
+INTERVALS_PO = (FIVE,) + INTERVALS
+# acyclovir กิน ฉลากสหรัฐ Table 3 ขนาดปกติ -> {แถว: (mg, ช่วงห่าง)}
+ACY_PO = {
+    (200, FIVE): {"R1": (200, FIVE), "R2": (200, 12)},
+    (400, 12): {"R1": (400, 12), "R2": (200, 12)},
+    (800, FIVE): {"R1": (800, FIVE), "R2": (800, 8), "R3": (800, 12)},
+}
 
 # แถวค่าไตตามสเปกข้อ 6 (ป้าย, ขอบล่าง, รวมขอบล่าง, ขอบบน, รวมขอบบน) None = ไม่มีขอบ
 BANDS = {
@@ -17,6 +25,9 @@ BANDS = {
     "ceftazidime": [("R0", 50, False, None, True), ("R1", 31, True, 50, True), ("R2", 16, True, 30, True), ("R3", 6, True, 15, True), ("R4", None, True, 5, False)],
     "acyclovir": [("R1", 50, False, None, True), ("R2", 25, True, 50, True), ("R3", 10, True, 25, True), ("R4", 0, True, 10, True)],
     "amoxclav": [("R1", 30, False, None, True), ("R2", 10, True, 30, True), ("R3", None, True, 10, False)],
+    "acyclovir_po_200": [("R1", 10, False, None, True), ("R2", 0, True, 10, True)],
+    "acyclovir_po_400": [("R1", 10, False, None, True), ("R2", 0, True, 10, True)],
+    "acyclovir_po_800": [("R1", 25, False, None, True), ("R2", 10, True, 25, True), ("R3", 0, True, 10, True)],
 }
 
 
@@ -119,7 +130,8 @@ def drug(item, k):
     ud, uq, od, oq = u.get("d"), u.get("q"), o.get("d"), o.get("q")
     def pos(v):
         return isinstance(v, (int, float)) and v == v and v > 0
-    if not (pos(ud) and uq in INTERVALS and pos(od) and oq in INTERVALS):
+    ivs = INTERVALS_PO if item["drug"] == "acyclovir_po" else INTERVALS
+    if not (pos(ud) and uq in ivs and pos(od) and oq in ivs):
         return {"ok": False}
     ud, od = dec(ud), dec(od)
     sel = item.get("sel") or {}
@@ -140,7 +152,7 @@ def drug(item, k):
         choices.append(["row", v, ["upper", "lower"]])
         return rows[0] if v == "upper" else rows[1]
 
-    o_daily = od * 24 / oq
+    o_daily = od * 24 / dec(oq)
     if name == "ceftriaxone":
         reg = R(ud, uq)
         sev = dial != "none" or k["crcl"] <= 15
@@ -203,6 +215,26 @@ def drug(item, k):
             reg = R(round_step(ud * pct * dw, 50), q)
         if od > 20 * dw:
             flags.append("red")
+    elif name == "acyclovir_po":
+        table = ACY_PO.get((int(ud) if ud == int(ud) else None, uq))
+        if table is None:
+            nodata = True
+        else:
+            bk = "acyclovir_po_%d" % int(ud)
+            if dial != "none":
+                d, q = table[BANDS[bk][-1][0]]  # แถวล่างสุด 0-10
+                reg = R(D(d), q, hd="extraAfter" if dial == "HD" else None)
+            else:
+                kn, rn = bands_of(k["crclNorm"], bk)
+                kr, rr = bands_of(k["crcl"], bk)
+                if kn == "one" and kr == "one" and rn[0] == rr[0]:
+                    x = k["crclNorm"]
+                else:
+                    v = pick(sel, "ctype", ("norm", "raw"), "norm")
+                    choices.append(["ctype", v, ["norm", "raw"]])
+                    x = k["crclNorm"] if v == "norm" else k["crcl"]
+                d, q = table[row_choice(x, bk)]
+                reg = R(D(d), q)
     elif name in ("amoxclav_iv", "amoxclav_po"):
         iv = name == "amoxclav_iv"
         if dial == "HD":
@@ -224,7 +256,7 @@ def drug(item, k):
             flags.append("yellow")
 
     ed = item.get("edit")
-    if reg is not None and ed and pos(ed.get("d")) and (reg["q"] is None or ed.get("q") in INTERVALS):
+    if reg is not None and ed and pos(ed.get("d")) and (reg["q"] is None or ed.get("q") in ivs):
         reg = dict(reg, dose=dec(ed["d"]), q=None if reg["q"] is None else ed["q"])
 
     # เทียบคำสั่ง สเปกข้อ 6.6
@@ -235,7 +267,7 @@ def drug(item, k):
     elif od == reg["dose"] and oq == reg["q"]:
         status = "ok"
     else:
-        a, b = od * 24 / oq, reg["dose"] * 24 / reg["q"]
+        a, b = od * 24 / dec(oq), reg["dose"] * 24 / dec(reg["q"])
         status = "high" if a > b * D("1.001") else "low" if a < b * D("0.999") else "split"
     return {
         "ok": True, "nodata": nodata,
