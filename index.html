@@ -108,7 +108,9 @@
   .flag.yellow { background: var(--yellow); border: 2px solid var(--yellow-line); color: var(--yellow-ink); }
   .flag.blue { background: var(--blue); border: 2px solid var(--blue-line); color: #fff; }
   .flag.plain { background: var(--paper); border: 1.5px solid var(--line); }
-  .editor { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; border-top: 1px dashed var(--rule); padding-top: 10px; }
+  details.edit { border-top: 1px dashed var(--rule); padding-top: 4px; }
+  details.edit summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; font-size: var(--fs-sm); cursor: pointer; }
+  .editor { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; padding-bottom: 4px; }
   .editor .field { flex: 1 1 140px; }
   .card-tools { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 
@@ -138,7 +140,7 @@
 <header class="header">
   <div class="header-inner">
     <div class="header-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5C6 3.5 4 7.5 4 12s2 8.5 6 8.5c2.2 0 3-1.5 3-3.5V7c0-2-.8-3.5-3-3.5z"/><path d="M13 12h3.5a3 3 0 0 1 3 3v5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.5C4.5 3.5 3 6.5 3 10.5S4.5 20 8 20c2 0 2.5-1.5 2-3.5-.4-1.6-.4-2.4.4-3.5.8-1.1.6-2.4-.2-3.4C9.3 8.4 10 7.2 10 6c0-1.5-1-2.5-2.5-2.5z"/><path d="M16.5 3.5C19.5 3.5 21 6.5 21 10.5S19.5 20 16 20c-2 0-2.5-1.5-2-3.5.4-1.6.4-2.4-.4-3.5-.8-1.1-.6-2.4.2-3.4.9-1.2.2-2.4.2-3.6 0-1.5 1-2.5 2.5-2.5z"/></svg>
     </div>
     <div>
       <h1>Renal Dose Calculator</h1>
@@ -639,9 +641,9 @@ function renderResult(it, res, k) {
   for (const c of res.cautions) parts.push(`<div class="msg"><div class="lab">ข้อควรระวัง</div><p>${esc(c)}</p></div>`);
   if (!res.nodata) {
     const base = res.suggested || res.reg;
-    parts.push(`<div class="editor"><div class="field"><label for="ed${it.id}">แก้ขนาดที่จะแนะนำ (${it.drug.startsWith('amoxclav') ? 'mg amoxicillin' : 'mg'})</label><input id="ed${it.id}" data-f="ed" type="number" inputmode="decimal" min="0" step="any" value="${res.reg.dose}"></div>
+    parts.push(`<details class="edit"${res.reg.edited || it.editOpen ? ' open' : ''} data-edit="${it.id}"><summary>แก้ขนาดที่จะแนะนำใน note</summary><div class="editor"><div class="field"><label for="ed${it.id}">ขนาด (${it.drug.startsWith('amoxclav') ? 'mg amoxicillin' : 'mg'})</label><input id="ed${it.id}" data-f="ed" type="number" inputmode="decimal" min="0" step="any" value="${res.reg.dose}"></div>
       ${base.q === null ? '' : `<div class="field"><label for="eq${it.id}">ช่วงห่าง</label>${intervalSelect(`eq${it.id}`, res.reg.q).replace('<select', '<select data-f="eq"')}</div>`}
-      ${res.reg.edited ? `<button type="button" class="btn" data-reset="${it.id}">ใช้ค่าที่แนะนำ</button>` : ''}</div>`);
+      ${res.reg.edited ? `<button type="button" class="btn" data-reset="${it.id}">ใช้ค่าที่แนะนำ</button>` : ''}</div></details>`);
   }
   box.innerHTML = parts.join('');
 }
@@ -741,6 +743,7 @@ document.addEventListener('input', e => {
   } else return;
   update();
 });
+document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-edit]')) { const it = STATE.items.find(x => x.id === Number(d.dataset.edit)); if (it) it.editOpen = d.open; } }, true);
 $('#addDrug').addEventListener('click', () => { const used = STATE.items.map(x => x.drug); const next = DRUG_ORDER.find(d => !used.includes(d)) || 'cefazolin'; STATE.items.push(newItem(next)); renderCards(); });
 $('#liver').addEventListener('change', update);
 $('#aki').addEventListener('change', update);
