@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือการใช้ Renal Dose Calculator</title>
+<meta name="author" content="DoseLogic">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* คู่มือ Renal Dose Calculator ธีมฉลากยา DoseLogic สีชมพูพาสเทล #f8bbd0 ตัวหนังสือสีเข้ม พิมพ์ A4 หน้าละ 1 section (สร้าง PDF ด้วย tests/make-manual-pdf.mjs) */
+  @page { size: A4; margin: 12mm 13mm; }
+  * { box-sizing: border-box; }
+  :root {
+    --ink: #1d2420; --ink-2: #4d5a52; --rule: #9aa79e; --paper: #eef1ee; --line: #c9d1cb;
+    --tool: #f8bbd0; --tool-soft: #fdeef3; --tool-line: #e07ba0;
+    --warn: #b45309; --warn-bg: #fff7ed; --warn-ink: #7c2d12;
+  }
+  body { font-family: 'Sarabun', sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.55; margin: 0; background: #fff; }
+  .page { page-break-after: always; }
+  .page:last-of-type { page-break-after: auto; }
+  .band { background: var(--tool); color: var(--ink); font: 700 8.5pt 'JetBrains Mono', monospace; letter-spacing: 0.08em; padding: 1.5mm 3mm; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; margin-bottom: 4mm; border: 1px solid var(--ink); }
+  .stamp { font: 800 10pt 'Sarabun', sans-serif; letter-spacing: 0; text-transform: none; background: var(--warn); color: #fff; padding: 0.3mm 2.5mm; border-radius: 1mm; }
+  .trial-big { border: 3px solid var(--warn); background: var(--warn-bg); color: var(--warn-ink); border-radius: 2mm; padding: 4mm 6mm; margin: 0 0 6mm; display: flex; align-items: center; gap: 6mm; }
+  .trial-big .tw { font-size: 50pt; font-weight: 800; line-height: 1.15; color: var(--warn); white-space: nowrap; }
+  .trial-big .ts { font-size: 12pt; font-weight: 600; line-height: 1.5; }
+  h1 { font-size: 24pt; font-weight: 800; margin: 0 0 2mm; line-height: 1.2; }
+  h2 { font-size: 15pt; font-weight: 800; margin: 0 0 4mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid var(--ink); }
+  h3 { font-size: 11.5pt; font-weight: 800; margin: 0 0 1mm; }
+  p { margin: 0 0 2mm; }
+  .lead { font-size: 12pt; color: var(--ink-2); }
+  .link { font: 600 10pt 'JetBrains Mono', monospace; color: var(--ink); word-break: break-all; }
+  .row { display: grid; grid-template-columns: 62mm 1fr; gap: 6mm; align-items: start; margin-bottom: 6mm; break-inside: avoid; }
+  .row img, .grid2 img { width: 100%; border: 1px solid var(--rule); border-radius: 2mm; display: block; }
+  .n { display: inline-flex; width: 6mm; height: 6mm; border-radius: 50%; background: var(--tool); border: 1px solid var(--ink); color: var(--ink); font-weight: 800; font-size: 9pt; align-items: center; justify-content: center; margin-right: 1.5mm; vertical-align: 1px; }
+  ul { margin: 0 0 2mm; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  .tip { background: var(--tool-soft); border-left: 3px solid var(--tool-line); padding: 2mm 3mm; border-radius: 0 2mm 2mm 0; margin-top: 2mm; font-size: 10pt; }
+  .cap { font-size: 9.5pt; color: var(--ink-2); }
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin: 4mm 0 5mm; }
+  .feature { border: 1.5px solid var(--ink); border-top: 5px solid var(--tool-line); border-radius: 1.5mm; padding: 3mm; }
+  .feature b { font-size: 11.5pt; }
+  table { border-collapse: collapse; width: 100%; font-size: 10pt; margin: 1mm 0 4mm; }
+  td, th { border-bottom: 1px dashed var(--rule); padding: 1.6mm 2mm; vertical-align: top; text-align: left; }
+  th { border-bottom: 1.5px solid var(--ink); font-size: 9.5pt; color: var(--ink-2); }
+  .sw { display: inline-block; width: 4mm; height: 4mm; border-radius: 1mm; vertical-align: -0.6mm; margin-right: 1.5mm; border: 1px solid transparent; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 5mm; break-inside: avoid; }
+  .grid2 img { margin-top: 1.5mm; }
+  .warn { border: 2px solid var(--warn); background: var(--warn-bg); color: var(--warn-ink); border-radius: 1.5mm; padding: 2.5mm 3.5mm; margin-top: 4mm; }
+  .refs li { font-size: 9.5pt; }
+  .foot { font-size: 8.5pt; color: var(--ink-2); margin-top: 4mm; }
+  .screen-only a { color: var(--ink); font-weight: 800; }
+  @media screen {
+    html { background: var(--paper); }
+    body { max-width: 210mm; margin: 0 auto; }
+    .page { padding: 12mm 12mm 8mm; border-bottom: 6px solid var(--paper); background: #fff; }
+    .back { position: fixed; right: 12px; bottom: 12px; background: var(--tool); color: var(--ink); padding: 10px 16px; border-radius: 3px; text-decoration: none; font-weight: 800; border: 2px solid var(--ink); }
+  }
+  @media screen and (max-width: 640px) {
+    .row, .features, .grid2 { grid-template-columns: 1fr; }
+    .page { padding: 16px; }
+    .row img { max-width: 360px; }
+    .trial-big { flex-direction: column; align-items: flex-start; gap: 2mm; }
+    .trial-big .tw { font-size: 40pt; }
+    table { font-size: 9.5pt; }
+  }
+  @media print { .back, .screen-only { display: none; } }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="band"><span>Renal Dose Calculator</span><span class="stamp">ทดลองใช้</span></div>
+  <div class="trial-big" role="note">
+    <div class="tw">ทดลองใช้</div>
+    <div class="ts">ขนาดยาทุกค่ายังไม่ยืนยันโดยเภสัชกรผู้ตรวจ<br>ตรวจกับแหล่งอ้างอิงของโรงพยาบาล<br>ทุกครั้งก่อนเขียน note</div>
+  </div>
+  <h1>คู่มือการใช้ Renal Dose Calculator</h1>
+  <p class="lead">เครื่องมือช่วยเภสัชกรตรวจขนาดยาของผู้ป่วยในที่ต้องปรับตามการทำงานของไต จอเทียบขนาดที่แพทย์สั่งกับขนาดที่แนะนำคู่กัน แล้วให้คัดลอก Pharmacist note ไปวางในบันทึกสหวิชาชีพ</p>
+  <p class="link">natthaphonyay-hub.github.io/renal-dose-calculator</p>
+  <p class="screen-only"><a href="renal-dose-calculator-manual.pdf">ดาวน์โหลดเป็น PDF</a></p>
+  <div class="features">
+    <div class="feature"><b>ผู้ป่วยไม่ฟอกไต</b><br>คิด CrCl ด้วยสูตร Cockcroft-Gault จากเพศ อายุ น้ำหนัก ส่วนสูง และ SCr แล้วเลือกขนาดตามช่วง CrCl ของยาแต่ละตัว</div>
+    <div class="feature"><b>ผู้ป่วยฟอกไต</b><br>ฟอกเลือด (HD) และล้างไตทางช่องท้อง (CAPD, APD) จอไม่คิด CrCl ใช้ขนาดสำหรับการฟอกไตของยาแต่ละตัว</div>
+  </div>
+  <h2>ยาที่มีในรอบนี้</h2>
+  <p>Ceftriaxone IV, Cefazolin IV, Ceftazidime IV, Acyclovir IV และ Amoxicillin-clavulanate ทั้ง IV และชนิดกิน ใส่ได้หลายตัวในผู้ป่วยคนเดียว</p>
+  <h2>หลักของเครื่องมือ</h2>
+  <ul>
+    <li><b>ช่วยไกด์ ไม่ตัดสินแทน</b> จอเสนอขนาดตามแหล่งอ้างอิงก่อนเสมอ เภสัชแก้ขนาดที่จะใส่ใน note เองได้</li>
+    <li><b>เตือนแต่ไม่ห้าม</b> ขนาดที่สูงหรือต่ำกว่าที่แนะนำขึ้นแถบสี แต่ทำต่อได้</li>
+    <li><b>ใช้แหล่งตามลำดับ</b> ฉลากยา (DailyMed สหรัฐ, SmPC อังกฤษ) ก่อน แล้วแนวทางวิชาชีพ (IDSA 2009) แล้วตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ค่าที่มีแหล่งเดียวเขียนกำกับว่า มีแหล่งเดียว</li>
+    <li><b>แหล่งขัดกันหรือค่าตกขอบ จอให้เลือก</b> แสดงทุกทาง ติดป้าย แนะนำ ไว้ทางเดียว</li>
+  </ul>
+  <h2>ยังไม่รองรับ</h2>
+  <p>ผู้ป่วยอายุต่ำกว่า 18 ปี (จอไม่แสดงขนาดยา), CRRT, ยาที่ใส่ในน้ำยาล้างไตทางช่องท้อง (IP), Amoxicillin-clavulanate IV ในผู้ป่วยล้างไตทางช่องท้อง และยาตัวอื่นนอกจากนี้ กรณีเหล่านี้ใช้แหล่งของโรงพยาบาลกับดุลยพินิจของเภสัชกรและแพทย์</p>
+  <div class="warn"><b>ห้ามกรอกชื่อหรือ HN ผู้ป่วย</b> ในเครื่องมือนี้</div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Steps 1/2</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>ใช้งานใน 5 ขั้น</h2>
+  <div class="row"><img src="img/s01-patient.png" alt="ช่องกรอกข้อมูลผู้ป่วย">
+    <div><h3><span class="n">1</span>กรอกข้อมูลผู้ป่วย</h3>
+      <p>เลือกเพศ กรอกอายุ ส่วนสูง น้ำหนัก และ SCr จอรับอายุจำนวนเต็ม 18 ถึง 110 ปี น้ำหนัก 20 ถึง 250 kg ส่วนสูง 120 ถึง 220 cm และ SCr 0.2 ถึง 20 mg/dL นอกช่วงนี้จอให้ตรวจตัวเลขก่อน ไม่คำนวณ</p>
+      <p>เลือก <b>การฟอกไต</b> ถ้าเลือก ฟอกเลือด HD ช่องน้ำหนักเปลี่ยนเป็น <b>น้ำหนักหลังฟอก</b> และช่อง SCr หายไป</p>
+      <p>กดเปิด <b>วันที่ และ SCr ยังไม่คงที่</b> เพื่อแก้วันที่ผล SCr กับวันที่ประเมิน (ตั้งเป็นวันนี้ไว้ให้) ถ้าติ๊ก SCr ยังไม่คงที่ จอขึ้นข้อควรระวังว่า CrCl จากสูตรอาจคลาดเคลื่อน</p>
+      <p class="cap">กด <b>ลองตัวอย่าง</b> เพื่อดูผู้ป่วยชาย 72 ปี 55 kg 160 cm SCr 2.1 ที่ได้ Cefazolin กับ Acyclovir (ภาพในคู่มือมาจากตัวอย่างนี้)</p></div></div>
+  <div class="row"><img src="img/s02-kidney.png" alt="กล่องค่าการทำงานของไต">
+    <div><h3><span class="n">2</span>อ่านค่าไต</h3>
+      <p>ตัวเลขใหญ่คือ CrCl จากสูตร Cockcroft-Gault หน่วย mL/min ต่อท้ายด้วยน้ำหนักที่ใช้ในสูตร จอเลือกน้ำหนักตาม BMI ให้เอง (น้อยกว่า 18.5 ใช้น้ำหนักจริง, 18.5 ถึงน้อยกว่า 25 ใช้ IBW, 25 ขึ้นไปใช้ AdjBW)</p>
+      <p>ถ้ามี Acyclovir จอแสดง CrCl ต่อ 1.73 ตร.ม. เพิ่ม เพราะฉลาก Acyclovir ใช้หน่วยนี้</p>
+      <p>กดเปิด <b>ค่าอื่นและที่มา</b> เพื่อดู CrCl จากน้ำหนักแบบอื่น BMI IBW AdjBW และพื้นที่ผิวกาย</p>
+      <div class="tip">ผู้ป่วยฟอกไต จอไม่คิด CrCl แสดงแค่น้ำหนัก BMI IBW และ AdjBW</div></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Steps 2/2</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>ใช้งานใน 5 ขั้น (ต่อ)</h2>
+  <div class="row"><img src="img/s03-drug-input.png" alt="การ์ดยา ช่องเลือกยาและขนาดที่แพทย์สั่ง">
+    <div><h3><span class="n">3</span>เลือกยาและกรอกขนาดที่แพทย์สั่ง</h3>
+      <p>เลือกยา กรอกขนาดต่อครั้งและช่วงห่าง (q 4 ถึง q 48 hr) Amoxicillin-clavulanate กรอกเป็น mg ของ amoxicillin</p>
+      <p><b>ขนาดปกติ</b> คือขนาดที่ผู้ป่วยควรได้ถ้าไตปกติ จอใช้ค่านี้คิดขนาดที่ลดแล้ว และตั้งให้เท่ากับที่แพทย์สั่งไว้ก่อน ถ้าแพทย์สั่งขนาดที่ลดมาแล้ว กดเปิดแล้วเลือกปุ่มขนาดปกติหรือกรอกเอง</p>
+      <p>Acyclovir เลือกข้อบ่งใช้ 5 mg/kg (เริมผิวหนัง) หรือ 10 mg/kg (สมองอักเสบ งูสวัด) แล้วกรอกขนาดที่แพทย์สั่งเป็น mg</p>
+      <p>Ceftazidime มีช่อง <b>ติดเชื้อรุนแรง</b> จอติ๊กให้เองเมื่อขนาดปกติรวม 6 g ต่อวันขึ้นไป (ขนาดในตารางไตเพิ่ม 50%) เอาออกได้ Ceftriaxone มีช่อง <b>ตับทำงานผิดปกติ</b></p>
+      <p>กด <b>เพิ่มยา</b> ใต้การ์ดยาเพื่อใส่ยาตัวต่อไป กด <b>ลบยานี้</b> เพื่อเอาออก</p></div></div>
+  <div class="row"><img src="img/s04-drug-result.png" alt="แถบผลและขนาดที่แนะนำ">
+    <div><h3><span class="n">4</span>อ่านผล</h3>
+      <p>แถบสีบนสุดบอกผลเทียบกับคำสั่ง (ความหมายของสีอยู่หน้าถัดไป) <b>แพทย์สั่ง</b> กับ <b>แนะนำ</b> อยู่คู่กัน บรรทัดเล็กบอกแถวที่ใช้และ <b>ที่มา</b></p>
+      <p class="cap">ภาพนี้ Cefazolin 1,000 mg q 8 hr ที่ CrCl 25.6 ตกแถว CrCl 11-34 จอแนะนำครึ่งขนาด 500 mg q 12 hr</p></div></div>
+  <div class="row"><img src="img/s05-note.png" alt="Pharmacist note">
+    <div><h3><span class="n">5</span>คัดลอก Pharmacist note</h3>
+      <p>note รวมยาทุกตัวในหน้า มีวันที่ประเมิน ข้อมูลผู้ป่วย ค่าไต ผลของยาแต่ละตัว ขนาดที่แนะนำ และอ้างอิง</p>
+      <p>กด <b>คัดลอก</b> แล้ววางในบันทึกสหวิชาชีพ ข้อความใช้แค่อักษรอังกฤษกับไทย วางแล้วไม่เพี้ยน</p>
+      <div class="tip">ถ้าปุ่มขึ้นว่า <b>เลือกข้อความแล้ว กด Ctrl+C</b> แปลว่าเบราว์เซอร์ไม่ให้คัดลอกเอง (เช่น เปิดผ่าน Google Sites) ให้กด Ctrl+C หรือ Command+C บน Mac</div></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Results</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>แถบผลและป้ายเตือน</h2>
+  <table>
+    <tr><th style="width:24%">แถบหรือป้าย</th><th>ความหมาย</th></tr>
+    <tr><td><span class="sw" style="background:#eef1ee;border-color:#9aa79e"></span>แถบสีพื้น</td><td>ขนาดเหมาะกับการทำงานของไตแล้ว หรือไม่ต้องปรับขนาด</td></tr>
+    <tr><td><span class="sw" style="background:#facc15;border-color:#ca8a04"></span>แถบเหลือง</td><td>ขนาดสูงกว่าที่แนะนำ หรือขนาดต่อวันเท่ากันแต่ช่วงห่างต่างจากที่แนะนำ</td></tr>
+    <tr><td><span class="sw" style="background:#0369a1"></span>แถบฟ้า</td><td>ขนาดต่ำกว่าที่แนะนำ</td></tr>
+    <tr><td><span class="sw" style="background:#f8bbd0;border-color:#1d2420"></span>แถบชมพู</td><td>ผู้ป่วยฟอกเลือดที่ขนาดให้ตามรอบฟอก จอเทียบเองไม่ได้ ให้เภสัชเทียบกับคำสั่งแพทย์</td></tr>
+    <tr><td><span class="sw" style="background:#fff7ed;border-color:#b45309"></span>ยังไม่รองรับ</td><td>ไม่มีข้อมูลจากแหล่งที่ใช้ จอไม่เสนอขนาด (Amoxicillin-clavulanate IV ในผู้ป่วยล้างไตทางช่องท้อง)</td></tr>
+    <tr><td><span class="sw" style="background:#dc2626"></span>ป้ายแดง</td><td>เกินขนาดสูงสุดในฉลาก (Ceftriaxone เกิน 4 g ต่อวัน, Acyclovir เกิน 20 mg/kg ต่อครั้ง)</td></tr>
+    <tr><td><span class="sw" style="background:#facc15;border-color:#ca8a04"></span>ป้ายเหลือง</td><td>Amoxicillin-clavulanate กิน 875 mg ในผู้ป่วย CrCl น้อยกว่า 30 หรือฟอกไต (ฉลากสหรัฐห้าม)</td></tr>
+    <tr><td><span class="sw" style="background:#b45309"></span>ข้อควรระวัง</td><td>Ceftriaxone มากกว่า 2 g ต่อวันในผู้ป่วย CrCl 15 ลงไปหรือฟอกไต (ฉลากรับรองว่าไม่ต้องปรับถึง 2 g ต่อวัน และมีรายงานพิษต่อระบบประสาท)</td></tr>
+  </table>
+  <div class="grid2">
+    <div><h3>ค่าไตอยู่ขอบช่วง</h3><p>ช่วง CrCl ในฉลากบางยาซ้อนกันหรือเว้นช่องว่าง เช่น Ceftazidime แถว 31-50 กับ 16-30 ค่า 30.6 ไม่อยู่แถวไหน จอแสดงสองแถวที่ติดกันให้เลือก ป้ายแนะนำอยู่ที่แถวขนาดสูงกว่า และ note เขียนว่าค่าอยู่ขอบช่วง</p><img src="img/s06-boundary.png" alt="ค่าไตอยู่ขอบช่วง Ceftazidime CrCl 30.6"></div>
+    <div><h3>ผู้ป่วยฟอกเลือด</h3><p>ขนาดให้ตามรอบฟอก แถบเป็นสีชมพู Cefazolin มีสองทาง คือ 20 mg/kg ตามน้ำหนักหลังฟอก (IDSA 2009 ทางที่แนะนำ) กับขนาดคงที่ 1 g หรือ 750 mg ถ้าน้ำหนักน้อยกว่า 50 kg (Fogel 1998)</p><img src="img/s07-hd.png" alt="Cefazolin ในผู้ป่วยฟอกเลือด"></div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Choices</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>ตัวเลือกที่จอจะถาม</h2>
+  <p>เมื่อแหล่งอ้างอิงแนะนำไม่ตรงกัน จอแสดงทุกทาง ติดป้าย แนะนำ ไว้ทางเดียว กดเลือกทางอื่นได้ ผลและ note เปลี่ยนตาม</p>
+  <table>
+    <tr><th style="width:38%">เมื่อไร</th><th>ทางที่แนะนำ</th><th style="width:28%">อีกทาง</th></tr>
+    <tr><td>ค่าไตอยู่ขอบช่วง (ทุกยาที่แบ่งแถวตาม CrCl)</td><td>แถวขนาดสูงกว่า</td><td>แถวขนาดต่ำกว่า</td></tr>
+    <tr><td>Cefazolin ในผู้ป่วยฟอกเลือด</td><td>20 mg/kg หลังฟอก (IDSA 2009)</td><td>ขนาดคงที่ (Fogel 1998)</td></tr>
+    <tr><td>Acyclovir ในผู้ป่วย BMI 30 ขึ้นไป</td><td>คิดขนาดจาก AdjBW (Stanford 2026)</td><td>IBW (ฉลากสหรัฐ)</td></tr>
+    <tr><td>Acyclovir เมื่อ CrCl ต่อ 1.73 ตร.ม. กับ CrCl ตกคนละแถว</td><td>CrCl ต่อ 1.73 ตร.ม. (ฉลากสหรัฐ)</td><td>CrCl ไม่แปลง (Stanford 2026)</td></tr>
+    <tr><td>Acyclovir ในผู้ป่วยฟอกเลือด</td><td>ครึ่งขนาด ทุก 24 ชม. และให้เพิ่ม 1 ครั้งหลังฟอก (ฉลากสหรัฐ)</td><td>วันที่ฟอกให้หลังฟอกเสร็จ (Stanford 2026)</td></tr>
+  </table>
+  <h3>แก้ขนาดที่แนะนำใน note</h3>
+  <p>กดเปิด <b>แก้ขนาดที่แนะนำใน note</b> ใต้ผลของยา แก้ขนาดและช่วงห่างได้ ช่องแนะนำจะเขียนว่า (เภสัชปรับเอง) และ note มีข้อความ (เภสัชปรับจากที่แนะนำ) ต่อท้าย กด <b>ใช้ค่าที่แนะนำ</b> เพื่อยกเลิก</p>
+  <div class="row" style="margin-top:5mm"><img src="img/s08-clear.png" alt="ปุ่มล้างข้อมูลตอนกดครั้งแรก">
+    <div><h3>ล้างข้อมูล</h3><p>กด <b>ล้างข้อมูล</b> ครั้งแรก ปุ่มเปลี่ยนเป็นสีส้มเขียนว่า กดอีกครั้งเพื่อล้างทั้งหมด กดซ้ำภายใน 4 วินาทีจึงล้าง ถ้าไม่กด ปุ่มกลับเป็นเหมือนเดิม ล้างแล้วเหลือการ์ดยาว่าง 1 ใบ</p>
+      <div class="tip">เปลี่ยนผู้ป่วยทุกครั้ง กดล้างข้อมูลก่อน</div></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Rules</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>กติกาการคำนวณ และที่มา</h2>
+  <table>
+    <tr><th style="width:64%">กติกา</th><th>ที่มา</th></tr>
+    <tr><td>CrCl เท่ากับ (140 ลบอายุ) คูณน้ำหนัก หารด้วย (72 คูณ SCr) ผู้หญิงคูณ 0.85 แสดงทศนิยม 1 ตำแหน่ง และใช้ค่าที่แสดงจัดแถว</td><td>Cockcroft 1976, MDCalc</td></tr>
+    <tr><td>น้ำหนักในสูตรตาม BMI ทศนิยม 1 ตำแหน่ง (น้อยกว่า 18.5 น้ำหนักจริง, 18.5 ถึงน้อยกว่า 25 IBW, 25 ขึ้นไป AdjBW)</td><td>Winter 2012 ตามที่ MDCalc ใช้</td></tr>
+    <tr><td>IBW ชาย 50 หญิง 45.5 kg บวก 2.3 kg ต่อทุกนิ้วที่สูงเกิน 60 นิ้ว ไม่มีค่าต่ำสุด AdjBW เท่ากับ IBW บวก 0.4 คูณ (น้ำหนักจริง ลบ IBW)</td><td>MDCalc</td></tr>
+    <tr><td>ไม่ปัด SCr ขึ้นในผู้สูงอายุหรือคนที่ SCr ต่ำ</td><td>Winter 2012</td></tr>
+    <tr><td>CrCl ต่อ 1.73 ตร.ม. ใช้กับ Acyclovir เท่านั้น พื้นที่ผิวกายสูตร Mosteller</td><td>ฉลาก Acyclovir สหรัฐ, Mosteller 1987</td></tr>
+    <tr><td>Acyclovir นับว่าอ้วนเมื่อ BMI 30 ขึ้นไป</td><td>Stanford 2026</td></tr>
+    <tr><td>ผู้ป่วยฟอกไตไม่คิด CrCl ผู้ป่วยฟอกเลือดคิดขนาดตามน้ำหนักจากน้ำหนักหลังฟอก APD ใช้ขนาดเดียวกับ CAPD</td><td>กติกาของเครื่องมือ</td></tr>
+    <tr><td>ปัดขนาด Acyclovir ทีละ 50 mg และ Cefazolin ในผู้ป่วยฟอกเลือดทีละ 250 mg ค่ากึ่งกลางปัดขึ้น</td><td>กติกาของเครื่องมือ</td></tr>
+  </table>
+  <h2>แหล่งของยาแต่ละตัว</h2>
+  <table>
+    <tr><th style="width:21%">ยา</th><th>ไม่ฟอกไต</th><th>ฟอกเลือด HD</th><th style="width:22%">CAPD, APD</th></tr>
+    <tr><td>Ceftriaxone IV</td><td>ไม่ต้องปรับถ้าไม่เกิน 2 g ต่อวัน ถ้าตับผิดปกติร่วมกับ CrCl 30 ลงไป แนะนำไม่เกิน 2 g ต่อวัน (ฉลากสหรัฐ)</td><td>ไม่ต้องให้เพิ่มหลังฟอก (ฉลากสหรัฐ)</td><td>ไม่ต้องให้เพิ่ม (ฉลากสหรัฐ)</td></tr>
+    <tr><td>Cefazolin IV</td><td>4 ช่วง CrCl (ฉลากสหรัฐ, SmPC อังกฤษ)</td><td>IDSA 2009 หรือ Fogel 1998</td><td>1 g ทุก 12 ชม. (Hamilton 2016 มีแหล่งเดียว)</td></tr>
+    <tr><td>Ceftazidime IV</td><td>ตารางไต 5 ช่วง (ฉลากสหรัฐ)</td><td>loading 1 g แล้ว 1 g หลังฟอก (ฉลากสหรัฐ)</td><td>loading 1 g แล้ว 500 mg ทุก 24 ชม. (ฉลากสหรัฐ)</td></tr>
+    <tr><td>Acyclovir IV</td><td>4 ช่วง CrCl ต่อ 1.73 ตร.ม. (ฉลากสหรัฐ)</td><td>ครึ่งขนาด ทุก 24 ชม. (ฉลากสหรัฐ หรือ Stanford 2026)</td><td>ครึ่งขนาด ทุก 24 ชม. (ฉลากสหรัฐ)</td></tr>
+    <tr><td>Amoxicillin-clavulanate IV</td><td>3 ช่วง CrCl (SmPC อังกฤษ)</td><td>SmPC อังกฤษ</td><td>ยังไม่รองรับ</td></tr>
+    <tr><td>Amoxicillin-clavulanate กิน</td><td>3 ช่วง CrCl (SmPC อังกฤษ)</td><td>SmPC อังกฤษ</td><td>250/125 mg ทุก 12 ชม. (Hamilton 2016 มีแหล่งเดียว)</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <div class="band"><span>References</span><span class="stamp">ทดลองใช้</span></div>
+  <h2>อ้างอิง</h2>
+  <ul class="refs">
+    <li>ฉลากยาจาก DailyMed (U.S. National Library of Medicine) Ceftriaxone (Hikma), Cefazolin (Hikma), Ceftazidime (Tazicef, Hospira), Acyclovir sodium (ProPharma) และ Amoxicillin-clavulanate ชนิดกิน เข้าถึง 8 พฤศจิกายน 2569</li>
+    <li>เอกสารกำกับยาอังกฤษ (SmPC) จาก electronic medicines compendium (emc) Co-amoxiclav 1000/200 mg IV ฉบับ 23 กรกฎาคม 2026, Co-amoxiclav 500/125 mg ชนิดกิน ฉบับ 9 กันยายน 2026 และ Cefazolin 2 g ฉบับ 22 เมษายน 2026</li>
+    <li>Mermel LA และคณะ. Clinical practice guidelines for the diagnosis and management of intravascular catheter-related infection, 2009 update by the Infectious Diseases Society of America. Clin Infect Dis 2009;49(1):1-45.</li>
+    <li>Fogel MA และคณะ. Cefazolin in chronic hemodialysis patients, a safe, effective alternative to vancomycin. Am J Kidney Dis 1998;32(3):401-9.</li>
+    <li>Hamilton Health Sciences. Table for renal dosage adjustment (antimicrobials). Hamilton, Canada, 2016.</li>
+    <li>Stanford Health Care. Antimicrobial Dosing Reference Guide. ABX Subcommittee อนุมัติ สิงหาคม 2026.</li>
+    <li>Cockcroft DW, Gault MH. Prediction of creatinine clearance from serum creatinine. Nephron 1976;16(1):31-41.</li>
+    <li>Winter MA, Guhr KN, Berg GM. Impact of various body weights and serum creatinine concentrations on the bias and accuracy of the Cockcroft-Gault equation. Pharmacotherapy 2012;32(7):604-12.</li>
+    <li>MDCalc. Creatinine Clearance (Cockcroft-Gault Equation). เข้าถึง 8 พฤศจิกายน 2569.</li>
+    <li>Mosteller RD. Simplified calculation of body-surface area. N Engl J Med 1987;317(17):1098.</li>
+  </ul>
+  <div class="warn"><b>ทดลองใช้</b> ขนาดยาในเครื่องมือนี้ยังไม่ผ่านการตรวจของเภสัชกรผู้ตรวจ ใช้ช่วยคิดเท่านั้น ตรวจกับคำสั่งแพทย์และแหล่งอ้างอิงของโรงพยาบาลทุกครั้ง</div>
+  <p class="foot">Renal Dose Calculator เวอร์ชัน 0.1 รอบทดลอง พฤศจิกายน 2569 พัฒนาโดย DoseLogic<br>เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน</p>
+</section>
+
+<a class="back" href="../">กลับไปเครื่องคำนวณ</a>
+</body>
+</html>

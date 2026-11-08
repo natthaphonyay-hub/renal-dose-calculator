@@ -33,6 +33,15 @@ node tests/probe-ui.mjs              # ตรวจการใช้งาน �
 node tests/make-hand-check.mjs       # สร้าง docs/ตารางตรวจมือ-การคำนวณ.md ไว้กดเครื่องคิดเลขตาม
 ```
 
+## คู่มือ
+
+คู่มือการใช้อยู่ `manual/` (ลิงก์ "คู่มือการใช้" ท้ายเครื่องมือ) แก้หน้าตาเครื่องมือหรือกติกาแล้วถ่ายรูปและสร้าง PDF ใหม่
+
+```
+node tests/make-manual-shots.mjs     # ถ่ายรูปจอมือถือ 390 px ลง manual/img/
+node tests/make-manual-pdf.mjs       # สร้าง manual/renal-dose-calculator-manual.pdf ขนาด A4
+```
+
 ## วางใน Google Sites (เมื่อพี่สั่งขึ้นเว็บ)
 
 แทรก > ฝัง > ตาม URL > วางลิงก์หน้าเว็บ (กรอบของ Sites ไม่ให้สิทธิ์ clipboard ปุ่มคัดลอกจึงมีทางสำรอง และไม่ใช้กล่อง alert หรือ confirm) รอบแรกยังไม่ส่งข้อมูลการใช้งานไปที่ไหน

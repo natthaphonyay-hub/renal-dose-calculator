@@ -137,6 +137,8 @@
   .footer .credit { text-align: right; font-size: var(--fs-cap); }
   .footer .org { font-family: var(--mono); font-weight: 700; font-size: 15px; }
   .footer .legal { font-size: var(--fs-cap); opacity: 0.85; border-top: 1px solid rgba(255, 255, 255, 0.18); padding-top: 10px; }
+  .footer .manual-link { margin-top: 6px; }
+  .footer .manual-link a { color: inherit; font-weight: 700; font-size: var(--fs-sm); display: inline-block; padding: 6px 0; }
 
   @media (max-width: 560px) {
     .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -231,7 +233,7 @@
   <div class="footer-inner">
     <div class="footer-top">
       <div><h2 class="ftitle">Renal Dose Calculator</h2><div class="fsub">Renal Dose Adjustment Tool</div></div>
-      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 0.1 รอบทดลอง | November 2026</div></div>
+      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 0.1 รอบทดลอง | November 2026</div><div class="manual-link"><a href="manual/" target="_blank" rel="noopener">คู่มือการใช้</a></div></div>
     </div>
     <div class="legal">ขนาดยาตามฉลากยา DailyMed สหรัฐ เอกสารกำกับยาอังกฤษ emc แนวทาง IDSA 2009 และตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ตามลำดับแหล่ง ทุกค่ายังไม่ยืนยัน เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
   </div>
@@ -684,7 +686,7 @@ function renderKidney(p, k) {
       <div class="kv"><b>CrCl จากน้ำหนักแบบอื่น</b><span class="num">${esc(other)}</span></div>
       <div class="kv"><b>BMI / IBW / AdjBW</b><span class="num">${fmt1(k.bmi)} / ${fmt1(k.ibw)} / ${fmt1(k.adjbw)} kg</span></div>
       <div class="kv"><b>พื้นที่ผิวกาย (Mosteller)</b><span class="num">${k.bsa.toFixed(2)} m2</span></div>
-      <p class="small">น้ำหนักในสูตรตามกลุ่ม BMI: น้อยกว่า 18.5 ใช้น้ำหนักจริง, 18.5 ถึงน้อยกว่า 25 ใช้ IBW, 25 ขึ้นไปใช้ AdjBW (Winter 2012 ผ่าน MDCalc) ไม่ปัด SCr</p>
+      <p class="small">น้ำหนักในสูตรตามกลุ่ม BMI น้อยกว่า 18.5 ใช้น้ำหนักจริง, 18.5 ถึงน้อยกว่า 25 ใช้ IBW, 25 ขึ้นไปใช้ AdjBW (Winter 2012 ผ่าน MDCalc) ไม่ปัด SCr</p>
     </div></details>`;
 }
 
