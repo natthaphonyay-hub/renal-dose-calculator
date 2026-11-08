@@ -397,12 +397,12 @@ function drugRec(item, k) {
     out.src = ['US', 'UK'];
     if (dial === 'HD') {
       const path = choose(out, item, 'path', 'ขนาดในผู้ป่วยฟอกเลือด', [
-        { v: 'idsa', label: `20 mg/kg หลังฟอกเสร็จทุกครั้ง = ${fmtInt(roundTo(20 * k.w, 250))} mg`, rec: true, why: 'IDSA 2009' },
+        { v: 'idsa', label: `20 mg/kg หลังฟอกเสร็จทุกครั้ง = ${fmtInt(roundTo(20 * k.w, 500))} mg`, rec: true, why: 'IDSA 2009' },
         { v: 'fogel', label: `ขนาดคงที่หลังฟอกเสร็จทุกครั้ง = ${fmtInt(k.w < 50 ? 750 : 1000)} mg`, rec: false, why: 'Fogel 1998' },
       ]);
       out.src = path === 'idsa' ? ['IDSA'] : ['FOGEL'];
       out.reg = path === 'idsa'
-        ? regOf(roundTo(20 * k.w, 250), null, { hd: 'after', basis: `20 mg/kg x น้ำหนักหลังฟอก ${fmt1(k.w)} kg = ${fmtInt(20 * k.w)} mg ปัดทีละ 250 mg`, noteBasis: '20 mg/kg' })
+        ? regOf(roundTo(20 * k.w, 500), null, { hd: 'after', basis: `20 mg/kg x น้ำหนักหลังฟอก ${fmt1(k.w)} kg = ${fmtInt(20 * k.w)} mg ปัดทีละ 500 mg ตาม IDSA`, noteBasis: '20 mg/kg' })
         : regOf(k.w < 50 ? 750 : 1000, null, { hd: 'after', basis: 'ขนาดคงที่ 1 g (750 mg ถ้าน้ำหนักน้อยกว่า 50 kg)', noteBasis: 'ขนาดคงที่ตาม Fogel 1998' });
     } else if (dial !== 'none') {
       out.src = ['HAM'];

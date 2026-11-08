@@ -56,10 +56,10 @@ eq('acyclovir เกิน 20 mg/kg ป้ายแดง', r.flags.map(f => f.c
 // 9.5 และ 9.6 HD cefazolin
 const hd = w => E.kidney(P('M', 60, w, 165, NaN, 'HD'));
 r = E.drugRec(it('cefazolin', 1000, 8, 1000, 8), hd(58));
-eq('9.5 HD cefazolin ทาง ก', [r.reg.dose, r.reg.q, r.reg.hd, r.status, r.choices[0].value], [1250, null, 'after', 'review', 'idsa']);
+eq('9.5 HD cefazolin ทาง ก', [r.reg.dose, r.reg.q, r.reg.hd, r.status, r.choices[0].value], [1000, null, 'after', 'review', 'idsa']);
 r = E.drugRec(it('cefazolin', 1000, 8, 1000, 8, { sel: { path: 'fogel' } }), hd(58));
 eq('9.5 HD cefazolin ทาง ข', r.reg.dose, 1000);
-const table96 = [[40, 750, 750], [45, 1000, 750], [49.9, 1000, 750], [50, 1000, 1000], [56.2, 1000, 1000], [56.3, 1250, 1000], [62.5, 1250, 1000], [75, 1500, 1000], [90, 1750, 1000]];
+const table96 = [[37.4, 500, 750], [37.5, 1000, 750], [49.9, 1000, 750], [50, 1000, 1000], [58, 1000, 1000], [62.4, 1000, 1000], [62.5, 1500, 1000], [87.4, 1500, 1000], [87.5, 2000, 1000]];
 for (const [w, a, b] of table96) {
   const ra = E.drugRec(it('cefazolin', 1000, 8, 1000, 8), hd(w)).reg.dose;
   const rb = E.drugRec(it('cefazolin', 1000, 8, 1000, 8, { sel: { path: 'fogel' } }), hd(w)).reg.dose;

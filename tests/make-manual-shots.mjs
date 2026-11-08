@@ -71,10 +71,10 @@ await ev(`__t.pick('[data-card] [data-f="drug"]', 'ceftazidime')`);
 await ev(`__t.type('[data-card] [data-f="od"]', '1000')`);
 await shot('s06-boundary.png', '[data-card] [data-result] .verdict', '[data-card] [data-result] .basis');
 
-// 7 ผู้ป่วยฟอกเลือด cefazolin น้ำหนักหลังฟอก 58 kg
+// 7 ผู้ป่วยฟอกเลือด cefazolin น้ำหนักหลังฟอก 70 kg (IDSA 1,500 mg ต่างจาก Fogel 1,000 mg)
 await fresh();
 await ev(`__t.click('button[data-sex="M"]')`); await ev(`__t.click('button[data-dial="HD"]')`);
-await ev(`__t.type('#age', '60')`); await ev(`__t.type('#height', '165')`); await ev(`__t.type('#weight', '58')`);
+await ev(`__t.type('#age', '60')`); await ev(`__t.type('#height', '165')`); await ev(`__t.type('#weight', '70')`);
 await ev(`__t.type('[data-card] [data-f="od"]', '1000')`);
 await shot('s07-hd.png', '[data-card] [data-result] .verdict', '[data-card] [data-result] .basis');
 

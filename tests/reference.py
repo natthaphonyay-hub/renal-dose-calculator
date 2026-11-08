@@ -155,7 +155,7 @@ def drug(item, k):
         if dial == "HD":
             v = pick(sel, "path", ("idsa", "fogel"), "idsa")
             choices.append(["path", v, ["idsa", "fogel"]])
-            dose = round_step(20 * k["w"], 250) if v == "idsa" else (D(750) if k["w"] < 50 else D(1000))
+            dose = round_step(20 * k["w"], 500) if v == "idsa" else (D(750) if k["w"] < 50 else D(1000))
             reg = R(dose, None, hd="after")
         elif dial != "none":
             reg = R(D(1000), 12)
