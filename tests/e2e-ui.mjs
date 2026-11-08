@@ -160,6 +160,28 @@ console.log(`กดหน้าเว็บ ${checked} โจทย์ ไม่
 console.log(`อ่านได้จริง: note ${stat.note} ขนาดที่แนะนำ ${stat.rec} ยังไม่รองรับ ${stat.nodata} มีตัวเลือก ${stat.choice} กดตัวเลือกที่ไม่แนะนำ ${stat.alt} แก้ขนาด ${stat.edit} การฟอก ${JSON.stringify(stat.dial)}`);
 if (stat.note < checked || stat.rec + stat.nodata < checked) { bad++; console.log('มีโจทย์ที่อ่านผลบนจอไม่ได้ ถือว่าล้ม'); }
 
+// ปุ่มล้างข้อมูล: กดครั้งแรกยังไม่ล้าง กดซ้ำทันที (ดับเบิลคลิก) ยังไม่ล้าง กดครั้งที่สองหลังครึ่งวินาทีล้างทั้งหมด ปล่อยไว้ 4 วินาทีปุ่มกลับเป็นเหมือนเดิม
+{
+  await load(390, 900, '?example=1');
+  const st = () => ev(`({ age: document.querySelector('#age').value, height: document.querySelector('#height').value, weight: document.querySelector('#weight').value, scr: document.querySelector('#scr').value,
+    sex: [...document.querySelectorAll('button[data-sex][aria-pressed="true"]')].length, dial: document.querySelector('button[data-dial][aria-pressed="true"]').dataset.dial,
+    kHidden: document.querySelector('#kCard').hidden, noteHidden: document.querySelector('#noteCard').hidden,
+    cards: [...document.querySelectorAll('[data-card] [data-f="drug"]')].map(s => s.value), label: document.querySelector('#clear').textContent })`);
+  const s0 = await st();
+  await ev(`__t.click('#clear')`); const s1 = await st();
+  await ev(`__t.click('#clear')`); const s2 = await st();
+  await sleep(600); await ev(`__t.click('#clear')`); const s3 = await st();
+  await load(390, 900, '?example=1'); await ev(`__t.click('#clear')`); await sleep(4300); const s4 = await st();
+  const okClear = s0.age === '72' && s0.cards.length === 2
+    && s1.age === '72' && s1.label === 'กดอีกครั้งเพื่อล้างทั้งหมด'
+    && s2.age === '72'
+    && s3.age === '' && s3.height === '' && s3.weight === '' && s3.scr === '' && s3.sex === 0 && s3.dial === 'none'
+    && s3.kHidden && s3.noteHidden && JSON.stringify(s3.cards) === '["cefazolin"]' && s3.label === 'ล้างข้อมูล'
+    && s4.age === '72' && s4.label === 'ล้างข้อมูล';
+  if (!okClear) fail('ปุ่มล้างข้อมูล', { s0, s1, s2, s3, s4 });
+  console.log(`ปุ่มล้างข้อมูล ${okClear ? 'ผ่าน' : 'ไม่ผ่าน'} (กดครั้งเดียวไม่ล้าง ดับเบิลคลิกไม่ล้าง กด 2 ครั้งล้างครบ ปล่อย 4 วินาทีกลับเหมือนเดิม)`);
+}
+
 // ล้นจอ: ทุกความกว้าง ทั้งตัวอย่างไม่ฟอก และ HD ที่มีตัวเลือก
 let overflow = 0;
 for (const width of [300, 320, 360, 390, 430, 768, 1024, 1280]) {

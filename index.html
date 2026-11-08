@@ -122,6 +122,8 @@
   details.fold summary .sum { font-weight: 400; color: var(--ink-2); }
   details.fold > div { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; }
   .editor { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+  .tools-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn.arm { background: var(--warn); border-color: var(--warn); color: #fff; }
   .editor .field { flex: 1 1 140px; }
 
   .note { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px; font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -198,7 +200,7 @@
           <label class="check" id="akiBox"><input type="checkbox" id="aki"><span>SCr ยังไม่คงที่ (เช่น ไตวายเฉียบพลัน)</span></label>
         </div>
       </details>
-      <button type="button" class="linkbtn" id="example">ลองตัวอย่าง</button>
+      <div class="tools-row"><button type="button" class="linkbtn" id="example">ลองตัวอย่าง</button><button type="button" class="btn" id="clear">ล้างข้อมูล</button></div>
     </div>
   </div>
 
@@ -799,6 +801,31 @@ function loadExample() {
   renderCards();
 }
 $('#example').addEventListener('click', loadExample);
+
+/* ---------- ล้างข้อมูล (พี่ขอ 2026-11-08) กด 2 ครั้งกันพลาด ไม่ใช้กล่อง confirm ของเบราว์เซอร์เพราะกรอบ Google Sites ไม่ให้ใช้ ---------- */
+function clearAll() {
+  STATE.sex = null; STATE.dial = 'none';
+  document.querySelectorAll('button[data-sex]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  document.querySelectorAll('button[data-dial]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dial === 'none')));
+  ['#age', '#height', '#weight', '#scr'].forEach(s => { $(s).value = ''; });
+  $('#scrDate').value = todayISO(); $('#assessDate').value = todayISO(); $('#aki').checked = false;
+  document.querySelectorAll('main details.fold').forEach(d => { d.open = false; });
+  STATE.items = [newItem('cefazolin')];
+  renderCards();
+  window.scrollTo(0, 0);
+}
+const CLEAR = { timer: null, armedAt: 0 };
+function disarmClear() { const b = $('#clear'); clearTimeout(CLEAR.timer); CLEAR.timer = null; b.textContent = 'ล้างข้อมูล'; b.classList.remove('arm'); }
+$('#clear').addEventListener('click', () => {
+  const b = $('#clear');
+  if (!CLEAR.timer) {
+    b.textContent = 'กดอีกครั้งเพื่อล้างทั้งหมด'; b.classList.add('arm'); CLEAR.armedAt = Date.now();
+    CLEAR.timer = setTimeout(disarmClear, 4000);
+    return;
+  }
+  if (Date.now() - CLEAR.armedAt < 400) return; // กันดับเบิลคลิกล้างทันที
+  disarmClear(); clearAll();
+});
 $('#assessDate').value = todayISO(); $('#scrDate').value = todayISO();
 STATE.items = [newItem('cefazolin')];
 renderCards();
