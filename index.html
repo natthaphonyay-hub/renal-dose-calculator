@@ -274,10 +274,11 @@ function thDate(iso) {
   if (!m) return '';
   return `${Number(m[3])} ${TH_MONTHS[Number(m[2]) - 1]} ${Number(m[1]) + 543}`;
 }
-// ปัดทศนิยม 1 ตำแหน่งแบบครึ่งขึ้น (ล้างเศษทศนิยมของเครื่องก่อน) ค่าที่แสดงบนจอ = ค่าที่ใช้จัดแถว
-function r1(x) { const y = Math.round(x * 1e6) / 1e6; return Math.floor(y * 10 + 0.5) / 10; }
+// ปัดทศนิยม 1 ตำแหน่งแบบครึ่งขึ้น ค่าที่แสดงบนจอ = ค่าที่ใช้จัดแถว
+// ล้างเศษทศนิยมของเครื่องที่ 1e-9 ก่อน (เศษจริงราว 1e-14) ห้ามหยาบกว่านี้: สุ่มเทียบเจอค่าจริง 31.64999963 ที่ล้างที่ 1e-6 แล้วกลายเป็น 31.65 ปัดผิดเป็น 31.7
+function r1(x) { const y = Math.round(x * 1e9) / 1e9; return Math.floor(y * 10 + 0.5) / 10; }
 // ปัดเป็นทีละ step ค่ากึ่งกลางปัดขึ้น
-function roundTo(x, step) { const y = Math.round((x / step) * 1e6) / 1e6; return Math.floor(y + 0.5) * step; }
+function roundTo(x, step) { const y = Math.round((x / step) * 1e9) / 1e9; return Math.floor(y + 0.5) * step; }
 function fmt1(x) { return r1(x).toFixed(1); }
 function fmtInt(n) { return Math.round(n).toLocaleString('en-US'); }
 function fmtDose(n) { return Number.isInteger(n) ? n.toLocaleString('en-US') : (Math.round(n * 10) / 10).toLocaleString('en-US'); }
@@ -303,7 +304,8 @@ function kidney(p) {
     else if (p.scr < LIMITS.scr[0] || p.scr > LIMITS.scr[1]) errs.push('SCr ต้องอยู่ระหว่าง 0.2 ถึง 20 mg/dL');
   }
   if (errs.length) return { ok: false, msg: errs.join(' ') };
-  const w = p.weight, i = ibw(p.sex, p.height), a = i + 0.4 * (w - i), b = w / Math.pow(p.height / 100, 2);
+  const w = p.weight, i = ibw(p.sex, p.height), a = i + 0.4 * (w - i), b = r1(w / Math.pow(p.height / 100, 2));
+  // แบ่งกลุ่มน้ำหนักด้วย BMI ที่แสดงบนจอ (ทศนิยม 1 ตำแหน่ง) เช่น 76.8 kg 160 cm ได้ 30.0 พอดี ไม่ใช่ 29.999999 ของเครื่อง
   let key, cw;
   if (b < 18.5) { key = 'TBW'; cw = w; } else if (b < 25) { key = 'IBW'; cw = i; } else { key = 'AdjBW'; cw = a; }
   const base = { ok: true, dial, w, ibw: i, adjbw: a, bmi: b, obese: b >= 30, key, cw };

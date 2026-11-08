@@ -115,6 +115,16 @@ eq('ceftazidime เอาติ๊กออก', [r.reg.dose, r.reg.q], [1000, 1
 r = E.drugRec(it('ceftazidime', 250, 12, 250, 12), mid);
 eq('ceftazidime ขนาดตามข้อบ่งใช้ต่ำกว่าตาราง', [r.reg.dose, r.reg.q, r.status], [250, 12, 'ok']);
 
+// บั๊กที่สุ่มเทียบเจอ 2026-11-08 (ล็อกไว้ไม่ให้กลับมา)
+{
+  const k30 = E.kidney(P('M', 82, 76.8, 160, NaN, 'HD'));
+  eq('BMI 30.0 พอดี (76.8 kg 160 cm) นับว่าอ้วน', [k30.bmi, k30.obese, k30.key], [30, true, 'AdjBW']);
+  const k25 = E.kidney(P('M', 50, 64, 160, 1));
+  eq('BMI 25.0 พอดี (64 kg 160 cm) ใช้ AdjBW', [k25.bmi, k25.key], [25, 'AdjBW']);
+  const kn = E.kidney(P('F', 26, 162.6, 175.4, 2.74));
+  eq('CrCl ต่อ 1.73 ค่าจริง 31.64999963 ปัดเป็น 31.6', [kn.crcl, kn.crclNorm], [51.5, 31.6]);
+}
+
 // อายุ ช่วงตัวเลข
 eq('อายุ 17 ไม่รองรับ', [E.kidney(P('M', 17, 60, 170, 1)).ok, E.kidney(P('M', 17, 60, 170, 1)).unsupported], [false, true]);
 eq('SCr 0.1 นอกช่วง', E.kidney(P('M', 40, 60, 170, 0.1)).ok, false);

@@ -35,6 +35,7 @@ export function summarize(res) {
 // รันชุดโจทย์: [{ p:{sex,age,weight,height,scr,dial}, item:{drug,usual,ordered,sel,severe,liver} }]
 export function runScenarios(api, list) {
   return list.map(s => {
+    if (s.kind === 'classify') { const c = api.classify(s.x, api.ROWS[s.rows]); return { c: [c.kind, c.rows.map(r => r.id)] }; }
     const k = api.kidney(s.p);
     if (!k.ok) return { k: { ok: false, unsupported: !!k.unsupported } };
     const kk = { ok: true, crcl: k.crcl, crclNorm: k.crclNorm ?? null, key: k.key, obese: k.obese };
