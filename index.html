@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renal Dose Calculator</title>
+<meta name="description" content="ปรับขนาดยาตามการทำงานของไตสำหรับผู้ป่วยใน คิด CrCl เทียบคำสั่งแพทย์ รองรับฟอกเลือดและล้างไตทางช่องท้อง พร้อม Pharmacist note">
+<meta name="author" content="DoseLogic">
+<meta name="theme-color" content="#f8bbd0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M13 5c-5 0-8 5-8 11s3 11 8 11c3 0 4-2 4-5v-12c0-3-1-5-4-5z' fill='%23f8bbd0' stroke='%231d2420' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ธีมฉลากยา DoseLogic (สเปก DoseLogic-หน้าแรก/00-ธีมฉลากยา-DoseLogic.md) สีประจำ renal #f8bbd0 ตัวหนังสือแถบหัวสีเข้ม (พี่เลือกแบบ 1 2026-11-08) */
+  :root {
+    --ink: #1d2420; --ink-2: #4d5a52; --rule: #9aa79e; --paper: #eef1ee; --label: #fbfcfa; --line: #c9d1cb;
+    --tool: #f8bbd0; --tool-ink: #1d2420; --tool-soft: #fdeef3; --tool-ring: rgba(29, 36, 32, 0.22);
+    --warn: #b45309; --warn-bg: #fff7ed; --warn-ink: #7c2d12;
+    --red: #dc2626; --red-line: #b91c1c; --yellow: #facc15; --yellow-line: #ca8a04; --yellow-ink: #422006; --blue: #0369a1; --blue-line: #075985;
+    --sans: 'Sarabun', 'Thonburi', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Sarabun', ui-monospace, Menlo, monospace;
+    --fs-cap: 13px; --fs-sm: 14px; --fs-body: 15px; --fs-field: 16px; --fs-card: 17px; --fs-page: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: var(--sans); background: var(--paper); color: var(--ink); font-size: var(--fs-body); line-height: 1.55; overflow-x: hidden; }
+  [hidden] { display: none !important; }
+  button, select { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  a { color: var(--ink); text-underline-offset: 3px; }
+  ::selection { background: var(--tool); }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .header { background: var(--tool); color: var(--tool-ink); border-bottom: 2px solid var(--ink); padding: 12px 16px; }
+  .header-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .header-icon { width: 40px; height: 40px; flex: none; border-radius: 3px; background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(29, 36, 32, 0.25); display: grid; place-items: center; }
+  .header-icon svg { width: 24px; height: 24px; }
+  .header h1 { font-size: var(--fs-page); font-weight: 800; line-height: 1.25; }
+  .header p { font-size: var(--fs-cap); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  #drugList { display: flex; flex-direction: column; gap: 16px; }
+
+  .card { background: var(--label); border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+  .band { background: var(--tool); color: var(--tool-ink); font: 700 12px var(--mono); letter-spacing: 0.08em; padding: 6px 12px; display: flex; justify-content: space-between; gap: 8px; text-transform: uppercase; border-bottom: 1.5px solid var(--ink); }
+  .card-body { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+  .card h2 { font-size: var(--fs-card); font-weight: 800; line-height: 1.35; }
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .small { font-size: var(--fs-cap); color: var(--ink-2); }
+
+  .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .fields.f2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field label, .field .label { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
+  .field input, .field select { width: 100%; min-height: 44px; font-size: var(--fs-field); font-family: var(--sans); border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; padding: 8px 10px; color: var(--ink); }
+  .field input:focus, .field select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--tool-ring); outline: none; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+  .seg button { min-height: 44px; border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; font-size: var(--fs-sm); font-weight: 600; padding: 6px 4px; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--label); border-color: var(--ink); }
+  .seg.dial { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-flow: row; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { min-height: 40px; border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; font-size: var(--fs-sm); padding: 4px 10px; }
+  .chips button:hover { border-color: var(--ink); }
+  .check { display: flex; gap: 10px; align-items: flex-start; min-height: 40px; padding: 7px 0; font-size: var(--fs-sm); }
+  .check input { width: 20px; height: 20px; margin-top: 1px; flex: none; accent-color: var(--ink); }
+  .check .why { display: block; font-size: var(--fs-cap); color: var(--ink-2); }
+
+  .msg { border: 2px solid var(--warn); background: var(--warn-bg); color: var(--warn-ink); border-radius: 4px; }
+  .msg .lab { background: var(--warn); color: #fff; font-weight: 600; font-size: var(--fs-cap); padding: 3px 10px; }
+  .msg p { padding: 8px 10px; }
+  .msg p + p { padding-top: 0; }
+  .empty { border: 1.5px dashed var(--rule); border-radius: 4px; padding: 14px; color: var(--ink-2); text-align: center; }
+  .btn { min-height: 44px; border-radius: 3px; padding: 8px 14px; font-weight: 600; font-size: var(--fs-sm); border: 1.5px solid var(--ink); background: transparent; }
+  .btn:hover { background: #e3e8e4; }
+  .btn.solid { background: var(--ink); color: var(--label); }
+  .btn.solid:hover { background: #2d3631; }
+  .btn.done { background: var(--tool); color: var(--tool-ink); }
+  .linkbtn { min-height: 40px; border: 0; background: none; color: var(--ink); font-weight: 600; font-size: var(--fs-sm); text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; align-self: flex-start; }
+
+  /* ค่าไต */
+  .kbig { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .kbig b { font: 700 34px var(--mono); }
+  .kbig span { font-size: var(--fs-sm); color: var(--ink-2); }
+  .kv { display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr); gap: 2px 12px; padding: 7px 0; border-top: 1px dashed var(--rule); font-size: var(--fs-sm); }
+  .kv b { color: var(--ink-2); font-weight: 600; }
+
+  /* การ์ดยา */
+  .tag { font-size: var(--fs-cap); font-weight: 600; border: 1px solid var(--line); border-radius: 3px; padding: 0 6px; background: var(--paper); white-space: nowrap; }
+  .tag.rec { background: var(--tool); border-color: var(--ink); color: var(--tool-ink); }
+  .tag.unconf { border-style: dashed; color: var(--ink-2); }
+  .tag.edited { border-color: var(--ink); background: var(--tool-soft); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .choice { border-top: 1px dashed var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .choice .ctitle { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
+  .opt { display: flex; gap: 10px; align-items: center; min-height: 44px; border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; padding: 6px 10px; font-size: var(--fs-sm); cursor: pointer; }
+  .opt input { width: 20px; height: 20px; flex: none; accent-color: var(--ink); }
+  .opt.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .opt .grow { flex: 1 1 auto; min-width: 0; }
+  .rec-box { border: 1.5px solid var(--ink); border-radius: 4px; background: #fff; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .rec-box .rlab { font-size: var(--fs-cap); font-weight: 600; color: var(--ink-2); }
+  .rec-box .rmain { font-size: var(--fs-body); line-height: 1.45; }
+  .rec-box .rmain b { font: 700 22px var(--mono); }
+  .rec-box .basis { font-size: var(--fs-sm); color: var(--ink-2); }
+  .flag { border-radius: 3px; padding: 6px 10px; font-size: var(--fs-sm); }
+  .flag.red { background: var(--red); border: 2px solid var(--red-line); color: #fff; }
+  .flag.yellow { background: var(--yellow); border: 2px solid var(--yellow-line); color: var(--yellow-ink); }
+  .flag.blue { background: var(--blue); border: 2px solid var(--blue-line); color: #fff; }
+  .flag.plain { background: var(--paper); border: 1.5px solid var(--line); }
+  .editor { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; border-top: 1px dashed var(--rule); padding-top: 10px; }
+  .editor .field { flex: 1 1 140px; }
+  .card-tools { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+  .note { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px; font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .note-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+
+  .footer { background: var(--ink); color: #e9ece9; margin-top: 8px; padding: 18px 16px 40px; }
+  .footer-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .footer h3 { font-size: 17px; font-weight: 800; }
+  .footer .fsub { font-size: var(--fs-cap); opacity: 0.8; }
+  .footer .credit { text-align: right; font-size: var(--fs-cap); }
+  .footer .org { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+  .footer .legal { font-size: var(--fs-cap); opacity: 0.85; border-top: 1px solid rgba(255, 255, 255, 0.18); padding-top: 10px; }
+
+  @media (max-width: 560px) {
+    .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fields .wide { grid-column: 1 / -1; }
+    .fields.f2 { grid-template-columns: 1fr; }
+    .seg.dial { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kv { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <div class="header-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5C6 3.5 4 7.5 4 12s2 8.5 6 8.5c2.2 0 3-1.5 3-3.5V7c0-2-.8-3.5-3-3.5z"/><path d="M13 12h3.5a3 3 0 0 1 3 3v5"/></svg>
+    </div>
+    <div>
+      <h1>Renal Dose Calculator</h1>
+      <p>ปรับขนาดยาตามการทำงานของไต ผู้ป่วยใน สำหรับเภสัชกร</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="msg" role="note"><div class="lab">รอบทดลอง ยังไม่ยืนยัน</div><p>ขนาดยาทุกค่ามาจากฉลากยาและแหล่งที่เปิดฟรี ยังไม่ได้ให้เภสัชกรที่เปิดแหล่งมาตรฐานของโรงพยาบาลตรวจ ตรวจกับแหล่งของโรงพยาบาลก่อนใช้กับผู้ป่วย</p></div>
+
+  <div class="card">
+    <div class="band"><span>Patient</span><span>Adult</span></div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field">
+          <span class="label" id="sexLab">เพศ</span>
+          <div class="seg" role="group" aria-labelledby="sexLab">
+            <button type="button" data-sex="M" aria-pressed="false">ชาย</button>
+            <button type="button" data-sex="F" aria-pressed="false">หญิง</button>
+          </div>
+        </div>
+        <div class="field"><label for="age">อายุ (ปี)</label><input id="age" type="number" inputmode="numeric" min="0" step="1" autocomplete="off"></div>
+        <div class="field"><label for="height">ส่วนสูง (cm)</label><input id="height" type="number" inputmode="decimal" min="0" step="0.1" autocomplete="off"></div>
+      </div>
+      <div class="field">
+        <span class="label" id="dialLab">การฟอกไต</span>
+        <div class="seg dial" role="group" aria-labelledby="dialLab">
+          <button type="button" data-dial="none" aria-pressed="true">ไม่ฟอกไต</button>
+          <button type="button" data-dial="HD" aria-pressed="false">ฟอกเลือด HD</button>
+          <button type="button" data-dial="CAPD" aria-pressed="false">CAPD</button>
+          <button type="button" data-dial="APD" aria-pressed="false">APD</button>
+        </div>
+      </div>
+      <div class="fields">
+        <div class="field"><label for="weight" id="weightLab">น้ำหนัก (kg)</label><input id="weight" type="number" inputmode="decimal" min="0" step="0.1" autocomplete="off"></div>
+        <div class="field" id="scrBox"><label for="scr">SCr (mg/dL)</label><input id="scr" type="number" inputmode="decimal" min="0" step="0.01" autocomplete="off"></div>
+        <div class="field" id="scrDateBox"><label for="scrDate">วันที่ผล SCr</label><input id="scrDate" type="date"></div>
+      </div>
+      <div class="fields f2">
+        <div class="field"><label for="assessDate">วันที่ประเมิน</label><input id="assessDate" type="date"></div>
+      </div>
+      <div>
+        <label class="check" id="akiBox"><input type="checkbox" id="aki"><span>SCr ยังไม่คงที่ (เช่น ไตวายเฉียบพลัน)<span class="why">สูตร Cockcroft-Gault ใช้ได้เมื่อ SCr คงที่</span></span></label>
+        <label class="check"><input type="checkbox" id="liver"><span>ตับทำงานผิดปกติ<span class="why">ใช้กับกติกา ceftriaxone</span></span></label>
+      </div>
+      <p class="small">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
+      <button type="button" class="linkbtn" id="example">ลองตัวอย่าง</button>
+    </div>
+  </div>
+
+  <div id="pMsg" class="msg" role="alert" hidden><div class="lab">ยังคำนวณไม่ได้</div><p></p></div>
+  <div id="akiMsg" class="msg" role="note" hidden><div class="lab">ข้อควรระวัง</div><p>SCr ยังไม่คงที่ ค่า CrCl จากสูตรอาจคลาดเคลื่อน ฉลาก ceftazidime ระบุว่า SCr ที่ใช้ควรเป็นค่าตอนการทำงานของไตคงที่</p></div>
+
+  <div class="card" id="kCard" hidden>
+    <div class="band"><span>Renal function</span><span id="kBand">Cockcroft-Gault</span></div>
+    <div class="card-body" id="kBody"></div>
+  </div>
+
+  <div id="drugList"></div>
+  <button type="button" class="btn" id="addDrug">เพิ่มยา</button>
+
+  <div class="card" id="noteCard" hidden>
+    <div class="band"><span>Pharmacist note</span><span>Copy and paste</span></div>
+    <div class="card-body">
+      <div class="note-actions">
+        <p class="small">ข้อความใช้แค่อักษรอังกฤษกับไทย วางในระบบโรงพยาบาลได้</p>
+        <button type="button" class="btn solid" id="copy">คัดลอก</button>
+      </div>
+      <pre class="note" id="note"></pre>
+      <p class="small">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div><h3>Renal Dose Calculator</h3><div class="fsub">Renal Dose Adjustment Tool</div></div>
+      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 0.1 รอบทดลอง | November 2026</div></div>
+    </div>
+    <div class="legal">ขนาดยาตามฉลากยา DailyMed สหรัฐ เอกสารกำกับยาอังกฤษ emc แนวทาง IDSA 2009 และตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ตามลำดับแหล่ง ทุกค่ายังไม่ยืนยัน เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+// DATA-START
+/* ข้อมูลยาและกติกา สเปก: ../01-สเปกกติกาคำนวณ.md ที่มาเต็ม: ../2026-11-08-ตารางรวมแหล่ง-ปรับยาไต-ฟอกไต-5ยา.md */
+const INTERVALS = [4, 6, 8, 12, 24, 48];
+const LIMITS = { age: [18, 110], weight: [20, 250], height: [120, 220], scr: [0.2, 20] };
+const DIAL_WHO = { HD: 'ผู้ป่วยฟอกเลือด', CAPD: 'ผู้ป่วยล้างไตทางช่องท้อง', APD: 'ผู้ป่วยล้างไตทางช่องท้อง' };
+const DIAL_LINE = { HD: 'ฟอกเลือด (HD)', CAPD: 'ล้างไตทางช่องท้อง (CAPD)', APD: 'ล้างไตทางช่องท้อง (APD)' };
+const SRC_TAG = { US: 'ฉลากสหรัฐ', UK: 'SmPC อังกฤษ', IDSA: 'IDSA 2009', FOGEL: 'Fogel 1998', HAM: 'Hamilton 2016', SHC: 'Stanford 2026' };
+const SRC_NOTE = {
+  US: n => `ฉลากยา ${n} (DailyMed สหรัฐ)`,
+  UK: n => `SmPC ${n} (emc อังกฤษ)`,
+  IDSA: () => 'IDSA 2009 catheter-related infection guideline',
+  FOGEL: () => 'Fogel 1998 Am J Kidney Dis',
+  HAM: () => 'Hamilton Health Sciences renal dosage adjustment 2016',
+  SHC: () => 'Stanford Health Care antimicrobial dosing guide 2026',
+};
+// ขนาดปกติที่มีปุ่มให้กด: [ขนาด, ทุกกี่ชม., แหล่ง, คำอธิบาย] acyclovir ขนาดเป็น mg/kg amoxicillin-clavulanate ขนาดเป็นส่วน amoxicillin
+const DRUGS = {
+  ceftriaxone: { name: 'Ceftriaxone', route: 'IV', unit: 'mg', std: [[1000, 24, 'US', ''], [2000, 24, 'US', ''], [2000, 12, 'SHC', 'เยื่อหุ้มสมองอักเสบ']] },
+  cefazolin: { name: 'Cefazolin', route: 'IV', unit: 'mg', std: [[1000, 8, 'US', ''], [2000, 8, 'SHC', 'ติดเชื้อปานกลางถึงรุนแรง'], [1000, 6, 'US', '']] },
+  ceftazidime: { name: 'Ceftazidime', route: 'IV', unit: 'mg', std: [[1000, 8, 'US', ''], [1000, 12, 'US', ''], [2000, 8, 'US', 'เยื่อหุ้มสมองอักเสบ ติดเชื้อรุนแรง']] },
+  acyclovir: { name: 'Acyclovir', route: 'IV', unit: 'mg/kg', std: [[5, 8, 'US', 'เริมที่ผิวหนังเยื่อเมือก'], [10, 8, 'US', 'สมองอักเสบจากเริม งูสวัดในผู้ภูมิคุ้มกันต่ำ']] },
+  amoxclav_iv: { name: 'Amoxicillin-clavulanate', route: 'IV', unit: 'amc_iv', std: [[1000, 8, 'UK', '']] },
+  amoxclav_po: { name: 'Amoxicillin-clavulanate', route: 'oral', unit: 'amc_po', std: [[500, 8, 'US', ''], [875, 12, 'US', '']] },
+};
+const DRUG_ORDER = ['ceftriaxone', 'cefazolin', 'ceftazidime', 'acyclovir', 'amoxclav_iv', 'amoxclav_po'];
+const DRUG_LABEL = { ceftriaxone: 'Ceftriaxone IV', cefazolin: 'Cefazolin IV', ceftazidime: 'Ceftazidime IV', acyclovir: 'Acyclovir IV', amoxclav_iv: 'Amoxicillin-clavulanate IV', amoxclav_po: 'Amoxicillin-clavulanate กิน' };
+// แถวค่าไต เรียงจากไตดีสุดไปแย่สุด lo hi เป็นตัวเลขตามฉลาก loIn hiIn = รวมค่านั้นไหม
+const ROW = (id, label, lo, loIn, hi, hiIn) => ({ id, label, lo, loIn, hi, hiIn });
+const ROWS = {
+  cefazolin: [ROW('R1', 'CrCl 55 ขึ้นไป', 55, true, null, true), ROW('R2', 'CrCl 35-54', 35, true, 54, true), ROW('R3', 'CrCl 11-34', 11, true, 34, true), ROW('R4', 'CrCl 10 ลงไป', null, true, 10, true)],
+  ceftazidime: [ROW('R0', 'CrCl มากกว่า 50', 50, false, null, true), ROW('R1', 'CrCl 31-50', 31, true, 50, true), ROW('R2', 'CrCl 16-30', 16, true, 30, true), ROW('R3', 'CrCl 6-15', 6, true, 15, true), ROW('R4', 'CrCl น้อยกว่า 5', null, true, 5, false)],
+  acyclovir: [ROW('R1', 'มากกว่า 50', 50, false, null, true), ROW('R2', '25-50', 25, true, 50, true), ROW('R3', '10-25', 10, true, 25, true), ROW('R4', '0-10', 0, true, 10, true)],
+  amoxclav: [ROW('R1', 'CrCl มากกว่า 30', 30, false, null, true), ROW('R2', 'CrCl 10-30', 10, true, 30, true), ROW('R3', 'CrCl น้อยกว่า 10', null, true, 10, false)],
+};
+const CEFTAZIDIME_TABLE = { R1: [1000, 12], R2: [1000, 24], R3: [500, 24], R4: [500, 48] };
+const ACYCLOVIR_TABLE = { R1: [1, 8], R2: [1, 12], R3: [1, 24], R4: [0.5, 24] };
+const EDIT_MARK = '(เภสัชปรับจากที่แนะนำ)';
+// DATA-END
+
+// CALC-START
+const TH_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+function thDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return '';
+  return `${Number(m[3])} ${TH_MONTHS[Number(m[2]) - 1]} ${Number(m[1]) + 543}`;
+}
+// ปัดทศนิยม 1 ตำแหน่งแบบครึ่งขึ้น (ล้างเศษทศนิยมของเครื่องก่อน) ค่าที่แสดงบนจอ = ค่าที่ใช้จัดแถว
+function r1(x) { const y = Math.round(x * 1e6) / 1e6; return Math.floor(y * 10 + 0.5) / 10; }
+// ปัดเป็นทีละ step ค่ากึ่งกลางปัดขึ้น
+function roundTo(x, step) { const y = Math.round((x / step) * 1e6) / 1e6; return Math.floor(y + 0.5) * step; }
+function fmt1(x) { return r1(x).toFixed(1); }
+function fmtInt(n) { return Math.round(n).toLocaleString('en-US'); }
+function fmtDose(n) { return Number.isInteger(n) ? n.toLocaleString('en-US') : (Math.round(n * 10) / 10).toLocaleString('en-US'); }
+function num(v) { if (v === null || v === undefined) return NaN; const s = String(v).trim(); if (!/^\d+(\.\d+)?$/.test(s)) return NaN; return Number(s); }
+
+function ibw(sex, h) { return (sex === 'M' ? 50 : 45.5) + 2.3 * (h / 2.54 - 60); }
+
+// ค่าไต p: { sex, age, weight, height, scr, dial } weight ของผู้ป่วย HD = น้ำหนักหลังฟอก
+function kidney(p) {
+  const errs = [];
+  const dial = p.dial || 'none';
+  if (p.sex !== 'M' && p.sex !== 'F') errs.push('เลือกเพศ');
+  if (!Number.isFinite(p.age)) errs.push('กรอกอายุ');
+  else if (Number.isInteger(p.age) && p.age >= 0 && p.age < 18) return { ok: false, unsupported: true, msg: 'อายุต่ำกว่า 18 ปี เครื่องมือรอบนี้ยังไม่รองรับ จึงไม่แสดงขนาดยา' };
+  else if (!Number.isInteger(p.age) || p.age > LIMITS.age[1]) errs.push('อายุต้องเป็นจำนวนเต็ม 18 ถึง 110 ปี');
+  const wl = dial === 'HD' ? 'น้ำหนักหลังฟอก' : 'น้ำหนัก';
+  if (!Number.isFinite(p.weight)) errs.push(`กรอก${wl}`);
+  else if (p.weight < LIMITS.weight[0] || p.weight > LIMITS.weight[1]) errs.push(`${wl}ต้องอยู่ระหว่าง 20 ถึง 250 kg`);
+  if (!Number.isFinite(p.height)) errs.push('กรอกส่วนสูง');
+  else if (p.height < LIMITS.height[0] || p.height > LIMITS.height[1]) errs.push('ส่วนสูงต้องอยู่ระหว่าง 120 ถึง 220 cm');
+  if (dial === 'none') {
+    if (!Number.isFinite(p.scr)) errs.push('กรอก SCr');
+    else if (p.scr < LIMITS.scr[0] || p.scr > LIMITS.scr[1]) errs.push('SCr ต้องอยู่ระหว่าง 0.2 ถึง 20 mg/dL');
+  }
+  if (errs.length) return { ok: false, msg: errs.join(' ') };
+  const w = p.weight, i = ibw(p.sex, p.height), a = i + 0.4 * (w - i), b = w / Math.pow(p.height / 100, 2);
+  let key, cw;
+  if (b < 18.5) { key = 'TBW'; cw = w; } else if (b < 25) { key = 'IBW'; cw = i; } else { key = 'AdjBW'; cw = a; }
+  const base = { ok: true, dial, w, ibw: i, adjbw: a, bmi: b, obese: b >= 30, key, cw };
+  if (dial !== 'none') return Object.assign(base, { crcl: null });
+  const cg = wt => (140 - p.age) * wt / (72 * p.scr) * (p.sex === 'F' ? 0.85 : 1);
+  const raw = cg(cw), bsa = Math.sqrt(p.height * w / 3600);
+  return Object.assign(base, {
+    crcl: r1(raw), variants: { TBW: r1(cg(w)), IBW: r1(cg(i)), AdjBW: r1(cg(a)) },
+    bsa, crclNorm: r1(raw * 1.73 / bsa),
+  });
+}
+
+function inRow(x, r) {
+  if (r.lo !== null && (x < r.lo || (x === r.lo && !r.loIn))) return false;
+  if (r.hi !== null && (x > r.hi || (x === r.hi && !r.hiIn))) return false;
+  return true;
+}
+// คืน { kind: one|overlap|gap, rows } overlap กับ gap คืน 2 แถวที่ติดกัน ตัวแรกคือแถวไตดีกว่า (ขนาดสูงกว่า แถวแนะนำ)
+function classify(x, rows) {
+  const hit = rows.filter(r => inRow(x, r));
+  if (hit.length === 1) return { kind: 'one', rows: hit };
+  if (hit.length === 2) return { kind: 'overlap', rows: hit };
+  // แถวที่ค่าไตต่ำกว่าขอบล่าง (above) กับแถวที่ค่าไตสูงกว่าขอบบน (below) นับขอบที่ไม่รวมค่านั้นด้วย เช่น ceftazidime น้อยกว่า 5 ที่ค่า 5
+  const above = rows.filter(r => r.lo !== null && (x < r.lo || (x === r.lo && !r.loIn)));
+  const below = rows.filter(r => r.hi !== null && (x > r.hi || (x === r.hi && !r.hiIn)));
+  return { kind: 'gap', rows: [above[above.length - 1], below[0]] };
+}
+
+function amcStr(unit, d) {
+  if (unit === 'amc_iv') return d === 1000 ? '1,000/200 mg' : d === 500 ? '500/100 mg' : `${fmtDose(d)}/${fmtDose(d / 5)} mg`;
+  if (unit === 'amc_po') return [250, 500, 875].includes(d) ? `${d}/125 mg` : `${fmtDose(d)} mg (amoxicillin)`;
+  return `${fmtDose(d)} mg`;
+}
+function doseStr(drug, d) { return amcStr(DRUGS[drug].unit, d); }
+function regOf(dose, q, extra) { return Object.assign({ dose, q, load: null, loadOpt: null, hd: null, basis: '', noteBasis: '', single: false }, extra || {}); }
+
+function choose(out, item, key, title, opts) {
+  const recV = opts.find(o => o.rec).v;
+  const want = item.sel ? item.sel[key] : undefined;
+  const value = opts.some(o => o.v === want) ? want : recV;
+  out.choices.push({ key, title, opts, value });
+  return value;
+}
+function pickRow(out, item, x, rows, what) {
+  const c = classify(x, rows);
+  if (c.kind === 'one') return { row: c.rows[0], boundary: false };
+  const v = choose(out, item, 'row', `${what} ${fmt1(x)} อยู่ขอบช่วง เลือกแถว`, [
+    { v: 'upper', label: `แถว ${c.rows[0].label}`, rec: true, why: 'แถวขนาดสูงกว่า' },
+    { v: 'lower', label: `แถว ${c.rows[1].label}`, rec: false, why: '' },
+  ]);
+  return { row: v === 'upper' ? c.rows[0] : c.rows[1], boundary: true };
+}
+
+// item: { drug, usual:{d,q}, ordered:{d,q}, sel:{}, edit:{d,q}|null, severe:true|false|null(อัตโนมัติ) }
+function drugRec(item, k) {
+  const D = DRUGS[item.drug];
+  const out = { drug: item.drug, name: D.name, route: D.route, choices: [], info: [], flags: [], cautions: [], src: [], reg: null, nodata: false, severe: null, severeAuto: null, ok: true };
+  const u = item.usual || {}, o = item.ordered || {};
+  const bad = [];
+  if (!(u.d > 0) || !INTERVALS.includes(u.q)) bad.push(item.drug === 'acyclovir' ? 'กรอกขนาดปกติเป็น mg/kg และช่วงห่าง' : 'กรอกขนาดปกติถ้าไตปกติและช่วงห่าง');
+  if (!(o.d > 0) || !INTERVALS.includes(o.q)) bad.push('กรอกขนาดที่แพทย์สั่งและช่วงห่าง');
+  if (bad.length) return Object.assign(out, { ok: false, msg: bad.join(' ') });
+  const dial = k.dial;
+  const oDaily = o.d * 24 / o.q;
+
+  if (item.drug === 'ceftriaxone') {
+    out.src = ['US'];
+    out.reg = regOf(u.d, u.q, { basis: dial === 'none' ? 'ไม่ต้องปรับตามการทำงานของไต (ไม่เกิน 2 g ต่อวัน)' : 'ไม่ต้องปรับ ไม่ต้องให้เพิ่มหลังฟอก' });
+    const severeRenal = dial !== 'none' || k.crcl <= 15, renal30 = dial !== 'none' || k.crcl <= 30;
+    if (oDaily > 4000) out.flags.push({ color: 'red', text: 'เกินขนาดสูงสุดต่อวันในฉลาก (ไม่เกิน 4 g ต่อวัน)' });
+    if (item.liver && renal30 && oDaily > 2000) {
+      out.reg = regOf(2000, 24, { basis: 'ตับผิดปกติร่วมไตเสื่อมมาก ไม่ควรเกิน 2 g ต่อวัน', noteBasis: 'ตับผิดปกติร่วมไตเสื่อมมาก ไม่ควรเกิน 2 g ต่อวัน' });
+    }
+    if (oDaily > 2000 && severeRenal) out.cautions.push('ไตเสื่อมรุนแรงหรือฟอกไต ฉลากรับรองว่าไม่ต้องปรับขนาดเฉพาะเมื่อไม่เกิน 2 g ต่อวัน และมีรายงานพิษต่อระบบประสาท (สมองทำงานผิดปกติ ชัก) ในผู้ป่วยไตเสื่อมรุนแรง เฝ้าระวังอาการ');
+  } else if (item.drug === 'cefazolin') {
+    out.src = ['US', 'UK'];
+    if (dial === 'HD') {
+      const path = choose(out, item, 'path', 'ขนาดในผู้ป่วยฟอกเลือด', [
+        { v: 'idsa', label: `20 mg/kg หลังฟอกเสร็จทุกครั้ง = ${fmtInt(roundTo(20 * k.w, 250))} mg`, rec: true, why: 'IDSA 2009' },
+        { v: 'fogel', label: `ขนาดคงที่หลังฟอกเสร็จทุกครั้ง = ${fmtInt(k.w < 50 ? 750 : 1000)} mg`, rec: false, why: 'Fogel 1998' },
+      ]);
+      out.src = path === 'idsa' ? ['IDSA'] : ['FOGEL'];
+      out.reg = path === 'idsa'
+        ? regOf(roundTo(20 * k.w, 250), null, { hd: 'after', basis: `20 mg/kg x น้ำหนักหลังฟอก ${fmt1(k.w)} kg = ${fmtInt(20 * k.w)} mg ปัดทีละ 250 mg`, noteBasis: '20 mg/kg' })
+        : regOf(k.w < 50 ? 750 : 1000, null, { hd: 'after', basis: 'ขนาดคงที่ 1 g (750 mg ถ้าน้ำหนักน้อยกว่า 50 kg)', noteBasis: 'ขนาดคงที่ตาม Fogel 1998' });
+    } else if (dial !== 'none') {
+      out.src = ['HAM'];
+      out.reg = regOf(1000, 12, { basis: '1 g ทุก 12 ชม.', single: true });
+    } else {
+      const { row, boundary } = pickRow(out, item, k.crcl, ROWS.cefazolin, 'CrCl');
+      const nb = boundary ? `CrCl อยู่ขอบช่วง เลือกแถว ${row.label} mL/min` : '';
+      if (row.id === 'R1') out.reg = regOf(u.d, u.q, { basis: `${row.label} ขนาดปกติ`, noteBasis: nb });
+      else if (row.id === 'R2') out.reg = regOf(u.d, Math.max(u.q, 8), { basis: `${row.label} ขนาดปกติ ห่างอย่างน้อยทุก 8 ชม.`, noteBasis: nb || 'ขนาดปกติ ห่างอย่างน้อยทุก 8 ชม.' });
+      else if (row.id === 'R3') out.reg = regOf(u.d / 2, 12, { basis: `${row.label} ครึ่งขนาดปกติ ทุก 12 ชม. ให้หลัง loading dose`, noteBasis: nb ? `${nb} ให้หลัง loading dose` : 'ครึ่งขนาดปกติ ช่วง CrCl 11-34 mL/min หลัง loading dose' });
+      else out.reg = regOf(u.d / 2, 24, { basis: `${row.label} ครึ่งขนาดปกติ ทุก 18 ถึง 24 ชม. (เสนอ 24 ชม.) ให้หลัง loading dose`, noteBasis: nb ? `${nb} ให้หลัง loading dose` : 'ครึ่งขนาดปกติ ช่วง CrCl 10 ลงไป หลัง loading dose' });
+    }
+  } else if (item.drug === 'ceftazidime') {
+    out.src = ['US'];
+    if (dial === 'HD') {
+      out.reg = regOf(1000, null, { load: 1000, hd: 'after', basis: 'loading 1 g แล้ว 1 g หลังฟอกเสร็จทุกครั้ง (ตรงกับ IDSA 2009)' });
+    } else if (dial !== 'none') {
+      out.reg = regOf(500, 24, { load: 1000, basis: 'loading 1 g แล้ว 500 mg ทุก 24 ชม.' });
+    } else {
+      const auto = u.d * 24 / u.q >= 6000;
+      const severe = item.severe === true || item.severe === false ? item.severe : auto;
+      out.severe = severe; out.severeAuto = auto;
+      const { row, boundary } = pickRow(out, item, k.crcl, ROWS.ceftazidime, 'CrCl');
+      const nb = boundary ? `CrCl อยู่ขอบช่วง เลือกแถว ${row.label} mL/min` : '';
+      if (row.id === 'R0') out.reg = regOf(u.d, u.q, { basis: `${row.label} ขนาดปกติ`, noteBasis: nb });
+      else {
+        let [d, q] = CEFTAZIDIME_TABLE[row.id];
+        if (severe) d = d * 1.5;
+        if (u.d * 24 / u.q < d * 24 / q) out.reg = regOf(u.d, u.q, { basis: `${row.label} ขนาดตามข้อบ่งใช้ต่ำกว่าตารางไต ใช้ขนาดที่ต่ำกว่า`, noteBasis: nb });
+        else out.reg = regOf(d, q, { loadOpt: 1000, basis: `${row.label} ตามตารางไต${severe ? ' ติดเชื้อรุนแรงเพิ่ม 50%' : ''} เริ่มด้วย loading 1 g ได้`, noteBasis: [nb, severe ? 'ติดเชื้อรุนแรง เพิ่ม 50%' : ''].filter(Boolean).join(' ') });
+      }
+    }
+  } else if (item.drug === 'acyclovir') {
+    out.src = ['US'];
+    const mgkg = u.d;
+    let dw = k.w, wkey = 'น้ำหนักจริง';
+    if (k.obese) {
+      const v = choose(out, item, 'wt', 'น้ำหนักคิดขนาด (BMI 30 ขึ้นไป)', [
+        { v: 'adj', label: `AdjBW ${fmt1(k.adjbw)} kg`, rec: true, why: 'Stanford 2026' },
+        { v: 'ibw', label: `IBW ${fmt1(k.ibw)} kg`, rec: false, why: 'ฉลากสหรัฐ' },
+      ]);
+      dw = v === 'adj' ? k.adjbw : k.ibw; wkey = v === 'adj' ? 'AdjBW' : 'IBW';
+      if (v === 'adj') out.src.push('SHC');
+    }
+    out.dosingWeight = { key: wkey, w: dw };
+    const wb = `${wkey} ${fmt1(dw)} kg`;
+    if (dial === 'HD') {
+      const dose = roundTo(mgkg * 0.5 * dw, 50);
+      const path = choose(out, item, 'path', 'วิธีให้ในผู้ป่วยฟอกเลือด', [
+        { v: 'label', label: 'ครึ่งขนาด ทุก 24 ชม. และให้เพิ่ม 1 ครั้งหลังฟอกเสร็จทุกครั้ง', rec: true, why: 'ฉลากสหรัฐ' },
+        { v: 'shc', label: 'ครึ่งขนาด ทุก 24 ชม. วันที่ฟอกให้หลังฟอกเสร็จ', rec: false, why: 'Stanford 2026' },
+      ]);
+      if (path === 'shc' && !out.src.includes('SHC')) out.src.push('SHC');
+      out.reg = regOf(dose, 24, { hd: path === 'label' ? 'extraAfter' : 'afterOnHD', basis: `ครึ่งขนาดของ ${fmtDose(mgkg)} mg/kg คิดจาก ${wb}`, noteBasis: `คิดจาก ${wb}` });
+    } else if (dial !== 'none') {
+      out.reg = regOf(roundTo(mgkg * 0.5 * dw, 50), 24, { basis: `ใช้แถว 0-10 ครึ่งขนาดของ ${fmtDose(mgkg)} mg/kg ทุก 24 ชม. ไม่ต้องให้เพิ่ม คิดจาก ${wb}`, noteBasis: `คิดจาก ${wb}` });
+    } else {
+      const cN = classify(k.crclNorm, ROWS.acyclovir), cR = classify(k.crcl, ROWS.acyclovir);
+      const same = cN.kind === 'one' && cR.kind === 'one' && cN.rows[0].id === cR.rows[0].id;
+      let ctype = 'norm';
+      if (same) out.info.push(`CrCl ต่อ 1.73 ตร.ม. ${fmt1(k.crclNorm)} กับ CrCl ${fmt1(k.crcl)} mL/min ได้แถวเดียวกัน`);
+      else {
+        ctype = choose(out, item, 'ctype', 'ค่าไตที่ใช้แบ่งแถว', [
+          { v: 'norm', label: `CrCl ต่อ 1.73 ตร.ม. = ${fmt1(k.crclNorm)}`, rec: true, why: 'ฉลากสหรัฐ' },
+          { v: 'raw', label: `CrCl = ${fmt1(k.crcl)} mL/min ไม่แปลง`, rec: false, why: 'Stanford 2026' },
+        ]);
+        if (ctype === 'raw' && !out.src.includes('SHC')) out.src.push('SHC');
+      }
+      out.ctype = same ? 'same' : ctype;
+      const x = ctype === 'norm' ? k.crclNorm : k.crcl;
+      const { row, boundary } = pickRow(out, item, x, ROWS.acyclovir, ctype === 'norm' ? 'CrCl ต่อ 1.73 ตร.ม.' : 'CrCl');
+      const [pct, q] = ACYCLOVIR_TABLE[row.id];
+      const dose = roundTo(mgkg * pct * dw, 50);
+      const rowTxt = `${ctype === 'norm' && !same ? 'CrCl ต่อ 1.73 ตร.ม.' : 'CrCl'} ${row.label}`;
+      out.reg = regOf(dose, q, {
+        basis: `${rowTxt} ${pct === 1 ? 'ขนาดเต็ม' : 'ครึ่งขนาด'} ${fmtDose(mgkg)} mg/kg ทุก ${q} ชม. คิดจาก ${wb} ปัดทีละ 50 mg`,
+        noteBasis: [boundary ? `ค่าไตอยู่ขอบช่วง เลือกแถว ${rowTxt}` : '', `คิดจาก ${wb}`].filter(Boolean).join(' '),
+      });
+    }
+    if (o.d > 20 * dw) out.flags.push({ color: 'red', text: `เกิน 20 mg/kg ต่อครั้ง (${fmtInt(20 * dw)} mg จาก ${wb}) ซึ่งฉลากห้ามเกิน` });
+  } else if (item.drug === 'amoxclav_iv') {
+    out.src = ['UK'];
+    if (dial === 'HD') out.reg = regOf(500, 24, { load: 1000, hd: 'endExtra', basis: 'เริ่ม 1,000/200 mg แล้ว 500/100 mg ทุก 24 ชม. และให้ 500/100 mg เมื่อฟอกเสร็จ' });
+    else if (dial !== 'none') { out.nodata = true; out.src = []; }
+    else {
+      const { row } = pickRow(out, item, k.crcl, ROWS.amoxclav, 'CrCl');
+      if (row.id === 'R1') out.reg = regOf(u.d, u.q, { basis: `${row.label} ไม่ต้องปรับ` });
+      else if (row.id === 'R2') out.reg = regOf(500, 12, { load: 1000, basis: `${row.label} เริ่ม 1,000/200 mg แล้ว 500/100 mg ทุก 12 ชม.` });
+      else out.reg = regOf(500, 24, { load: 1000, basis: `${row.label} เริ่ม 1,000/200 mg แล้ว 500/100 mg ทุก 24 ชม.` });
+    }
+  } else if (item.drug === 'amoxclav_po') {
+    out.src = ['UK'];
+    if (dial === 'HD') out.reg = regOf(500, 24, { hd: 'duringEnd', basis: '500/125 mg ทุก 24 ชม. ให้เพิ่มระหว่างฟอกและซ้ำเมื่อฟอกเสร็จ' });
+    else if (dial !== 'none') { out.src = ['HAM']; out.reg = regOf(250, 12, { basis: '250/125 mg ทุก 12 ชม.', single: true }); }
+    else {
+      const { row } = pickRow(out, item, k.crcl, ROWS.amoxclav, 'CrCl');
+      if (row.id === 'R1') out.reg = regOf(u.d, u.q, { basis: `${row.label} ไม่ต้องปรับ` });
+      else if (row.id === 'R2') out.reg = regOf(500, 12, { basis: `${row.label} 500/125 mg วันละ 2 ครั้ง` });
+      else out.reg = regOf(500, 24, { basis: `${row.label} 500/125 mg วันละครั้ง` });
+    }
+    if (o.d === 875 && (dial !== 'none' || k.crcl < 30)) { out.flags.push({ color: 'yellow', text: 'ฉลากสหรัฐห้ามขนาด 875 mg เมื่อ GFR น้อยกว่า 30' }); if (!out.src.includes('US')) out.src.push('US'); }
+  }
+
+  if (out.reg && item.edit && item.edit.d > 0 && (out.reg.q === null || INTERVALS.includes(item.edit.q))) {
+    out.suggested = out.reg;
+    out.reg = Object.assign({}, out.reg, { dose: item.edit.d, q: out.reg.q === null ? null : item.edit.q, edited: true });
+  }
+  out.status = compare(o, out.reg);
+  out.statusText = statusText(out.status, dial, item.drug, out.nodata);
+  out.chip = { high: 'yellow', split: 'yellow', low: 'blue' }[out.status] || null;
+  return out;
+}
+
+function compare(o, r) {
+  if (!r || r.dose === null) return 'none';
+  if (r.q === null || r.hd) return 'review';
+  if (Math.abs(o.d - r.dose) < 1e-9 && o.q === r.q) return 'ok';
+  const od = o.d * 24 / o.q, rd = r.dose * 24 / r.q;
+  if (od > rd * 1.001) return 'high';
+  if (od < rd * 0.999) return 'low';
+  return 'split';
+}
+function statusText(st, dial, drug, nodata) {
+  if (nodata) return `ยังไม่มีข้อมูลการปรับขนาดใน${DIAL_WHO[dial] || 'ผู้ป่วยกลุ่มนี้'}จากแหล่งที่ใช้`;
+  if (dial !== 'none') return st === 'ok' ? `ขนาดเหมาะกับ${DIAL_WHO[dial]}แล้ว` : `ควรปรับขนาดสำหรับ${DIAL_WHO[dial]}`;
+  if (st === 'ok') return drug === 'ceftriaxone' ? 'ไม่ต้องปรับขนาดตามการทำงานของไต' : 'ขนาดเหมาะกับการทำงานของไตแล้ว';
+  return { high: 'ขนาดสูงกว่าที่แนะนำตามการทำงานของไต', low: 'ขนาดต่ำกว่าที่แนะนำตามการทำงานของไต', split: 'ขนาดต่อวันเท่ากัน แต่ช่วงห่างต่างจากที่แนะนำ', review: 'ควรปรับขนาด' }[st] || '';
+}
+
+// ข้อความขนาดที่แนะนำ ใช้ทั้งบนจอและใน note
+function regText(drug, r) {
+  const D = DRUGS[drug], n = D.name, rt = D.route, ds = d => doseStr(drug, d);
+  const lead = r.load ? `${n} loading ${ds(r.load)} ${rt} แล้ว ` : `${n} `;
+  const body = r.q === null ? `${ds(r.dose)} ${rt} หลังฟอกเลือดเสร็จทุกครั้ง` : `${ds(r.dose)} ${rt} q ${r.q} hr`;
+  let t = lead + body;
+  if (r.hd === 'extraAfter') t += ` และให้เพิ่ม ${ds(r.dose)} หลังฟอกเลือดเสร็จทุกครั้ง`;
+  if (r.hd === 'afterOnHD') t += ' วันที่ฟอกให้หลังฟอกเลือดเสร็จ';
+  if (r.hd === 'endExtra') t += ` และให้ ${ds(500)} เมื่อฟอกเลือดเสร็จทุกครั้ง`;
+  if (r.hd === 'duringEnd') t += ` และให้เพิ่ม ${ds(500)} ระหว่างฟอกเลือด และอีกครั้งเมื่อฟอกเสร็จ`;
+  return t;
+}
+
+// note p: ข้อมูลผู้ป่วย k: ผลค่าไต items: [{item, res}]
+function buildNote(p, k, rows) {
+  const L = ['Pharmacist note', `    - ประเมินขนาดยาตามการทำงานของไต วันที่ ${thDate(p.assessDate)}`];
+  const sx = p.sex === 'M' ? 'ชาย' : 'หญิง';
+  if (k.dial === 'none') {
+    L.push(`        - ${sx} อายุ ${p.age} ปี น้ำหนัก ${fmt1(p.weight)} kg ส่วนสูง ${fmtDose(p.height)} cm BMI ${fmt1(k.bmi)}`);
+    L.push(`        - SCr ${p.scr.toFixed(2)} mg/dL${p.scrDate ? ` วันที่ ${thDate(p.scrDate)}` : ''}`);
+    L.push(`        - CrCl ${fmt1(k.crcl)} mL/min (Cockcroft-Gault ใช้ ${k.key} ${fmt1(k.cw)} kg)`);
+    if (rows.some(x => x.res.ok && x.res.ctype === 'norm')) L.push(`        - CrCl ต่อ 1.73 ตร.ม. ${fmt1(k.crclNorm)} (พื้นที่ผิวกาย ${k.bsa.toFixed(2)} m2 สูตร Mosteller)`);
+  } else {
+    L.push(`        - ${sx} อายุ ${p.age} ปี ${DIAL_LINE[k.dial]} ${k.dial === 'HD' ? 'น้ำหนักหลังฟอก' : 'น้ำหนัก'} ${fmt1(p.weight)} kg`);
+  }
+  const refs = [];
+  for (const { item, res } of rows) {
+    if (!res.ok) continue;
+    const D = DRUGS[item.drug];
+    L.push(`    - ${D.name} ${doseStr(item.drug, item.ordered.d)} ${D.route} q ${item.ordered.q} hr ${res.statusText}`);
+    if (!res.nodata && res.status !== 'ok') {
+      const extra = [res.reg.noteBasis, res.reg.loadOpt ? `เริ่มด้วย loading ${doseStr(item.drug, res.reg.loadOpt)} ได้` : '', res.reg.single ? 'มีแหล่งเดียว' : ''].filter(Boolean).join(' ');
+      L.push(`        - แนะนำ ${regText(item.drug, res.reg)}${extra ? ` (${extra})` : ''}${res.reg.edited ? ` ${EDIT_MARK}` : ''}`);
+    }
+    if (item.drug === 'ceftriaxone' && k.dial !== 'none' && res.status === 'ok') L.push('        - ไม่ต้องให้ยาเพิ่มหลังฟอก');
+    for (const s of res.src) { const t = SRC_NOTE[s](D.name); if (!refs.includes(t)) refs.push(t); }
+  }
+  if (refs.length) L.push(`    - อ้างอิง ${refs.join(', ')}`);
+  return L.join('\n');
+}
+// CALC-END
+
+/* ===================== หน้าจอ ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const STATE = { sex: null, dial: 'none', items: [], nextId: 1 };
+
+function newItem(drug) {
+  const s = DRUGS[drug].std[0];
+  return { id: STATE.nextId++, drug, usual: { d: s[0], q: s[1] }, ordered: { d: drug === 'acyclovir' ? NaN : s[0], q: s[1] }, usualTouched: false, sel: {}, edit: null, severe: null };
+}
+function patient() {
+  return {
+    sex: STATE.sex, dial: STATE.dial, age: num($('#age').value), weight: num($('#weight').value), height: num($('#height').value),
+    scr: num($('#scr').value), scrDate: $('#scrDate').value, assessDate: $('#assessDate').value || todayISO(),
+  };
+}
+function intervalSelect(id, value) {
+  return `<select id="${id}">${INTERVALS.map(q => `<option value="${q}"${q === value ? ' selected' : ''}>q ${q} hr</option>`).join('')}</select>`;
+}
+function stdButtons(it) {
+  return DRUGS[it.drug].std.map((s, i) => {
+    const D = DRUGS[it.drug];
+    const lab = D.unit === 'mg/kg' ? `${s[0]} mg/kg q ${s[1]} hr` : `${doseStr(it.drug, s[0])} q ${s[1]} hr`;
+    return `<button type="button" data-std="${i}" data-id="${it.id}">${esc(lab)}${s[3] ? ` <span class="small">${esc(s[3])}</span>` : ''}</button>`;
+  }).join('');
+}
+function drugCardShell(it) {
+  const D = DRUGS[it.drug];
+  const usualLab = D.unit === 'mg/kg' ? 'ขนาดปกติถ้าไตปกติ (mg/kg)' : D.unit.startsWith('amc') ? 'ขนาดปกติถ้าไตปกติ (mg amoxicillin)' : 'ขนาดปกติถ้าไตปกติ (mg)';
+  const ordLab = D.unit.startsWith('amc') ? 'ขนาดที่แพทย์สั่ง (mg amoxicillin)' : 'ขนาดที่แพทย์สั่ง (mg)';
+  return `
+  <div class="card" data-card="${it.id}">
+    <div class="band"><span>${esc(D.name)}</span><span>${esc(D.route)}</span></div>
+    <div class="card-body">
+      <div class="fields f2">
+        <div class="field"><label for="drug${it.id}">ยา</label><select id="drug${it.id}" data-f="drug">${DRUG_ORDER.map(k => `<option value="${k}"${k === it.drug ? ' selected' : ''}>${esc(DRUG_LABEL[k])}</option>`).join('')}</select></div>
+        <div class="field"><span class="label">ขนาดมาตรฐานจากแหล่ง (กดใส่ขนาดปกติ)</span><div class="chips">${stdButtons(it)}</div></div>
+      </div>
+      <div class="fields f2">
+        <div class="field"><label for="ud${it.id}">${usualLab}</label><div class="pair"><input id="ud${it.id}" data-f="ud" type="number" inputmode="decimal" min="0" step="any" value="${Number.isFinite(it.usual.d) ? it.usual.d : ''}">${intervalSelect(`uq${it.id}`, it.usual.q).replace('<select', '<select data-f="uq" aria-label="ช่วงห่างของขนาดปกติ"')}</div></div>
+        <div class="field"><label for="od${it.id}">${ordLab}</label><div class="pair"><input id="od${it.id}" data-f="od" type="number" inputmode="decimal" min="0" step="any" value="${Number.isFinite(it.ordered.d) ? it.ordered.d : ''}">${intervalSelect(`oq${it.id}`, it.ordered.q).replace('<select', '<select data-f="oq" aria-label="ช่วงห่างที่แพทย์สั่ง"')}</div></div>
+      </div>
+      ${it.drug === 'acyclovir' ? '<p class="small">ขนาดปกติของ acyclovir กรอกเป็น mg/kg (5 หรือ 10) ขนาดที่แพทย์สั่งกรอกเป็น mg ต่อครั้ง</p>' : ''}
+      <label class="check" data-severe-box hidden><input type="checkbox" data-f="severe"><span>ติดเชื้อรุนแรงที่ปกติให้ 6 g ต่อวัน (เพิ่มขนาดในตารางไต 50%)<span class="why" data-severe-why></span></span></label>
+      <div data-result></div>
+      <div class="card-tools"><button type="button" class="linkbtn" data-remove="${it.id}">ลบยานี้</button></div>
+    </div>
+  </div>`;
+}
+function renderResult(it, res, k) {
+  const box = document.querySelector(`[data-card="${it.id}"] [data-result]`);
+  const sev = document.querySelector(`[data-card="${it.id}"] [data-severe-box]`);
+  sev.hidden = !(it.drug === 'ceftazidime' && res && res.severe !== null);
+  if (!sev.hidden) {
+    sev.querySelector('input').checked = res.severe;
+    sev.querySelector('[data-severe-why]').textContent = res.severeAuto ? 'ติ๊กให้เองเพราะขนาดปกติรวม 6 g ต่อวันขึ้นไป เอาออกได้' : 'ติ๊กเองถ้าผู้ป่วยติดเชื้อรุนแรง';
+  }
+  if (!k || !k.ok) { box.innerHTML = ''; return; }
+  if (!res.ok) { box.innerHTML = `<div class="empty">${esc(res.msg)}</div>`; return; }
+  const parts = [];
+  for (const c of res.choices) {
+    parts.push(`<div class="choice" role="radiogroup" aria-label="${esc(c.title)}"><div class="ctitle">${esc(c.title)}</div>${c.opts.map(o => `
+      <label class="opt${o.v === c.value ? ' on' : ''}"><input type="radio" name="c${it.id}${c.key}" data-choice="${c.key}" value="${o.v}"${o.v === c.value ? ' checked' : ''}>
+      <span class="grow">${esc(o.label)}${o.why ? ` <span class="small">${esc(o.why)}</span>` : ''}</span>${o.rec ? '<span class="tag rec">แนะนำ</span>' : ''}</label>`).join('')}</div>`);
+  }
+  for (const t of res.info) parts.push(`<div class="flag plain">${esc(t)}</div>`);
+  if (res.nodata) {
+    parts.push(`<div class="msg"><div class="lab">ยังไม่รองรับ</div><p>${esc(res.statusText)} ให้เภสัชพิจารณาเอง เครื่องมือไม่เสนอขนาด</p></div>`);
+  } else {
+    const r = res.reg;
+    const tags = [...res.src.map(s => `<span class="tag">${esc(SRC_TAG[s])}</span>`), '<span class="tag unconf">ยังไม่ยืนยัน</span>'];
+    if (r.single) tags.push('<span class="tag">มีแหล่งเดียว</span>');
+    if (r.edited) tags.push('<span class="tag edited">เภสัชปรับเอง</span>');
+    parts.push(`<div class="rec-box"><div class="rlab">ขนาดที่แนะนำ</div><div class="rmain">${esc(regText(it.drug, r))}</div>
+      <div class="basis">${esc(r.basis)}${r.loadOpt ? '' : ''}</div><div class="tags">${tags.join('')}</div></div>`);
+    if (res.chip) parts.push(`<div class="flag ${res.chip}">${esc(res.statusText)}</div>`);
+    else parts.push(`<div class="flag plain">${esc(res.statusText)}${res.status === 'review' ? ' เทียบกับคำสั่งแพทย์เอง เพราะเป็นขนาดที่ให้ตามรอบฟอก' : ''}</div>`);
+  }
+  for (const f of res.flags) parts.push(`<div class="flag ${f.color}">${esc(f.text)}</div>`);
+  for (const c of res.cautions) parts.push(`<div class="msg"><div class="lab">ข้อควรระวัง</div><p>${esc(c)}</p></div>`);
+  if (!res.nodata) {
+    const base = res.suggested || res.reg;
+    parts.push(`<div class="editor"><div class="field"><label for="ed${it.id}">แก้ขนาดที่จะแนะนำ (${it.drug.startsWith('amoxclav') ? 'mg amoxicillin' : 'mg'})</label><input id="ed${it.id}" data-f="ed" type="number" inputmode="decimal" min="0" step="any" value="${res.reg.dose}"></div>
+      ${base.q === null ? '' : `<div class="field"><label for="eq${it.id}">ช่วงห่าง</label>${intervalSelect(`eq${it.id}`, res.reg.q).replace('<select', '<select data-f="eq"')}</div>`}
+      ${res.reg.edited ? `<button type="button" class="btn" data-reset="${it.id}">ใช้ค่าที่แนะนำ</button>` : ''}</div>`);
+  }
+  box.innerHTML = parts.join('');
+}
+function renderKidney(p, k) {
+  const card = $('#kCard'), body = $('#kBody');
+  if (!k.ok) { card.hidden = true; return; }
+  card.hidden = false;
+  if (k.dial !== 'none') {
+    $('#kBand').textContent = k.dial;
+    body.innerHTML = `<p>${esc(DIAL_LINE[k.dial])} ไม่คิด CrCl จากสูตร ใช้ขนาดสำหรับการฟอกไตของยาแต่ละตัว</p>
+      <div class="kv"><b>${k.dial === 'HD' ? 'น้ำหนักหลังฟอก' : 'น้ำหนัก'}</b><span class="num">${fmt1(k.w)} kg</span></div>
+      <div class="kv"><b>BMI / IBW / AdjBW</b><span class="num">${fmt1(k.bmi)} / ${fmt1(k.ibw)} / ${fmt1(k.adjbw)} kg</span></div>`;
+    return;
+  }
+  $('#kBand').textContent = 'Cockcroft-Gault';
+  const other = ['TBW', 'IBW', 'AdjBW'].filter(x => x !== k.key).map(x => `${x === 'TBW' ? 'น้ำหนักจริง' : x} ${fmt1(k.variants[x])}`).join(' | ');
+  const acy = STATE.items.some(it => it.drug === 'acyclovir');
+  body.innerHTML = `<div class="kbig"><b>${fmt1(k.crcl)}</b><span>mL/min ใช้ ${k.key === 'TBW' ? 'น้ำหนักจริง' : k.key} ${fmt1(k.cw)} kg</span></div>
+    <div class="kv"><b>CrCl จากน้ำหนักแบบอื่น</b><span class="num">${esc(other)}</span></div>
+    <div class="kv"><b>BMI / IBW / AdjBW</b><span class="num">${fmt1(k.bmi)} / ${fmt1(k.ibw)} / ${fmt1(k.adjbw)} kg</span></div>
+    ${acy ? `<div class="kv"><b>CrCl ต่อ 1.73 ตร.ม. (acyclovir)</b><span class="num">${fmt1(k.crclNorm)} (พื้นที่ผิวกาย ${k.bsa.toFixed(2)} m2 สูตร Mosteller)</span></div>` : ''}
+    <p class="small">น้ำหนักในสูตรตามกลุ่ม BMI: น้อยกว่า 18.5 ใช้น้ำหนักจริง, 18.5 ถึงน้อยกว่า 25 ใช้ IBW, 25 ขึ้นไปใช้ AdjBW (Winter 2012 ผ่าน MDCalc) ไม่ปัด SCr</p>`;
+}
+
+function update() {
+  const p = patient();
+  $('#weightLab').textContent = STATE.dial === 'HD' ? 'น้ำหนักหลังฟอก (kg)' : 'น้ำหนัก (kg)';
+  $('#scrBox').hidden = STATE.dial !== 'none'; $('#scrDateBox').hidden = STATE.dial !== 'none'; $('#akiBox').hidden = STATE.dial !== 'none';
+  const k = kidney(p);
+  const msg = $('#pMsg');
+  const touched = ['#age', '#weight', '#height', '#scr'].some(s => $(s).value !== '') || STATE.sex;
+  msg.hidden = k.ok || !touched;
+  if (!k.ok) { msg.querySelector('.lab').textContent = k.unsupported ? 'ยังไม่รองรับ' : 'ยังคำนวณไม่ได้'; msg.querySelector('p').textContent = k.msg; }
+  $('#akiMsg').hidden = !(k.ok && STATE.dial === 'none' && $('#aki').checked);
+  renderKidney(p, k);
+  const rows = [];
+  for (const it of STATE.items) {
+    const res = k.ok ? drugRec(Object.assign({}, it, { liver: $('#liver').checked }), k) : null;
+    renderResult(it, res, k);
+    if (res) rows.push({ item: it, res });
+  }
+  const noteCard = $('#noteCard');
+  const usable = k.ok && rows.some(r => r.res.ok);
+  noteCard.hidden = !usable;
+  if (usable) $('#note').textContent = buildNote(p, k, rows);
+}
+function renderCards() {
+  $('#drugList').innerHTML = STATE.items.map(drugCardShell).join('');
+  update();
+}
+function itemOf(el) { const c = el.closest('[data-card]'); return c ? STATE.items.find(x => x.id === Number(c.dataset.card)) : null; }
+
+document.addEventListener('click', e => {
+  const sx = e.target.closest('button[data-sex]');
+  if (sx) { STATE.sex = sx.dataset.sex; document.querySelectorAll('button[data-sex]').forEach(b => b.setAttribute('aria-pressed', String(b === sx))); update(); return; }
+  const dl = e.target.closest('button[data-dial]');
+  if (dl) { STATE.dial = dl.dataset.dial; document.querySelectorAll('button[data-dial]').forEach(b => b.setAttribute('aria-pressed', String(b === dl))); STATE.items.forEach(it => { it.edit = null; }); update(); return; }
+  const sb = e.target.closest('button[data-std]');
+  if (sb) {
+    const it = itemOf(sb), s = DRUGS[it.drug].std[Number(sb.dataset.std)];
+    it.usual = { d: s[0], q: s[1] }; it.usualTouched = true; it.edit = null; it.severe = null;
+    if (it.drug !== 'acyclovir' && !Number.isFinite(it.ordered.d)) it.ordered = { d: s[0], q: s[1] };
+    const c = sb.closest('[data-card]'); c.querySelector('[data-f="ud"]').value = s[0]; c.querySelector('[data-f="uq"]').value = s[1];
+    update(); return;
+  }
+  const rm = e.target.closest('button[data-remove]');
+  if (rm) { STATE.items = STATE.items.filter(x => x.id !== Number(rm.dataset.remove)); renderCards(); return; }
+  const rs = e.target.closest('button[data-reset]');
+  if (rs) { const it = itemOf(rs); it.edit = null; update(); return; }
+});
+document.addEventListener('change', e => {
+  const t = e.target, it = itemOf(t);
+  if (t.matches('[data-choice]') && it) { it.sel[t.dataset.choice] = t.value; it.edit = null; update(); return; }
+  if (!it) { update(); return; }
+  const f = t.dataset.f;
+  if (f === 'drug') { const ni = newItem(t.value); ni.id = it.id; STATE.items[STATE.items.indexOf(it)] = ni; renderCards(); return; }
+  if (f === 'severe') { it.severe = t.checked; it.edit = null; update(); return; }
+  if (f === 'uq') { it.usual.q = Number(t.value); it.usualTouched = true; it.edit = null; }
+  if (f === 'oq') { it.ordered.q = Number(t.value); if (!it.usualTouched && it.drug !== 'acyclovir') { it.usual.q = it.ordered.q; t.closest('[data-card]').querySelector('[data-f="uq"]').value = it.usual.q; } }
+  if (f === 'eq') { it.edit = { d: Number(t.closest('[data-card]').querySelector('[data-f="ed"]').value), q: Number(t.value) }; }
+  update();
+});
+document.addEventListener('input', e => {
+  const t = e.target, it = itemOf(t);
+  if (!it) { if (t.matches('input')) update(); return; }
+  const f = t.dataset.f;
+  if (f === 'ud') { it.usual.d = num(t.value); it.usualTouched = true; it.edit = null; it.severe = null; }
+  else if (f === 'od') {
+    it.ordered.d = num(t.value);
+    if (!it.usualTouched && it.drug !== 'acyclovir') { it.usual.d = it.ordered.d; t.closest('[data-card]').querySelector('[data-f="ud"]').value = t.value; }
+  } else if (f === 'ed') {
+    const c = t.closest('[data-card]'), q = c.querySelector('[data-f="eq"]');
+    it.edit = { d: num(t.value), q: q ? Number(q.value) : null };
+    const p = patient(), k = kidney(p);
+    if (k.ok) { const res = drugRec(Object.assign({}, it, { liver: $('#liver').checked }), k); $('#note').textContent = buildNote(p, k, STATE.items.map(x => ({ item: x, res: x === it ? res : drugRec(Object.assign({}, x, { liver: $('#liver').checked }), k) }))); }
+    return;
+  } else return;
+  update();
+});
+$('#addDrug').addEventListener('click', () => { const used = STATE.items.map(x => x.drug); const next = DRUG_ORDER.find(d => !used.includes(d)) || 'cefazolin'; STATE.items.push(newItem(next)); renderCards(); });
+$('#liver').addEventListener('change', update);
+$('#aki').addEventListener('change', update);
+
+/* ---------- คัดลอก (กรอบ Google Sites ไม่ให้สิทธิ์ clipboard ต้องมีทางสำรอง) ---------- */
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* ทางสำรอง */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy'); ta.remove();
+    return ok;
+  } catch { return false; }
+}
+$('#copy').addEventListener('click', async () => {
+  const b = $('#copy'), pre = $('#note');
+  const ok = await copyText(pre.textContent);
+  if (ok) { b.classList.add('done'); b.textContent = 'คัดลอกแล้ว'; }
+  else { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'เลือกข้อความแล้ว กด Ctrl+C'; }
+  setTimeout(() => { b.classList.remove('done'); b.textContent = 'คัดลอก'; }, 2200);
+});
+
+function loadExample() {
+  STATE.sex = 'M'; document.querySelectorAll('button[data-sex]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sex === 'M')));
+  STATE.dial = 'none'; document.querySelectorAll('button[data-dial]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dial === 'none')));
+  $('#age').value = 72; $('#weight').value = 55; $('#height').value = 160; $('#scr').value = 2.1;
+  STATE.items = [newItem('cefazolin'), newItem('acyclovir')];
+  STATE.items[1].usual = { d: 10, q: 8 }; STATE.items[1].ordered = { d: 550, q: 8 }; STATE.items[1].usualTouched = true;
+  renderCards();
+}
+$('#example').addEventListener('click', loadExample);
+$('#assessDate').value = todayISO(); $('#scrDate').value = todayISO();
+STATE.items = [newItem('cefazolin')];
+renderCards();
+if (/[?&]example=1\b/.test(location.search)) loadExample();
+</script>
+</body>
+</html>
