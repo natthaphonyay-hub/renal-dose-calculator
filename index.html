@@ -242,7 +242,7 @@
       <div><h2 class="ftitle">Renal Dose Calculator</h2><div class="fsub">Renal Dose Adjustment Tool</div></div>
       <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 0.1 รอบทดลอง | November 2026</div><div class="manual-link"><a href="manual/" target="_blank" rel="noopener">คู่มือการใช้</a></div></div>
     </div>
-    <div class="legal">ขนาดยาตามฉลากยา DailyMed สหรัฐ เอกสารกำกับยาอังกฤษ emc แนวทาง IDSA 2009 และตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ตามลำดับแหล่ง ทุกค่ายังไม่ยืนยัน เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
+    <div class="legal">ขนาดยาตามฉลากยา DailyMed สหรัฐ เอกสารกำกับยาอังกฤษ emc แนวทาง IDSA 2009 และตารางของโรงพยาบาลมหาวิทยาลัย (Hamilton 2016, Stanford 2026) ตามลำดับแหล่ง ทุกค่ายังไม่ยืนยัน เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง<span id="logNotice" hidden><br>เว็บนี้นับจำนวนการเข้าใช้และเก็บค่าที่ใช้คำนวณแบบไม่ระบุตัวตน (ไม่เก็บอายุ น้ำหนัก ส่วนสูง SCr) เพื่อปรับปรุงเครื่องมือ ห้ามกรอกชื่อหรือ HN ผู้ป่วย</span></div>
   </div>
 </footer>
 
@@ -767,7 +767,7 @@ function update() {
   const noteCard = $('#noteCard');
   const usable = k.ok && rows.some(r => r.res.ok);
   noteCard.hidden = !usable;
-  if (usable) $('#note').textContent = buildNote(p, k, rows);
+  if (usable) { $('#note').textContent = buildNote(p, k, rows); logQueue(logRows(k, rows)); } else logStop();
 }
 function renderCards() {
   $('#drugList').innerHTML = STATE.items.map(drugCardShell).join('');
@@ -818,7 +818,7 @@ document.addEventListener('input', e => {
     const c = t.closest('[data-card]'), q = c.querySelector('[data-f="eq"]');
     it.edit = { d: num(t.value), q: q ? Number(q.value) : null };
     const p = patient(), k = kidney(p);
-    if (k.ok) $('#note').textContent = buildNote(p, k, STATE.items.map(x => ({ item: x, res: drugRec(x, k) })));
+    if (k.ok) { const rows = STATE.items.map(x => ({ item: x, res: drugRec(x, k) })); $('#note').textContent = buildNote(p, k, rows); logQueue(logRows(k, rows)); }
     return;
   } else return;
   update();
@@ -845,6 +845,7 @@ async function copyText(text) {
 }
 $('#copy').addEventListener('click', async () => {
   const b = $('#copy'), pre = $('#note');
+  logCopy();
   const ok = await copyText(pre.textContent);
   if (ok) { b.classList.add('done'); b.textContent = 'คัดลอกแล้ว'; }
   else { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'เลือกข้อความแล้ว กด Ctrl+C'; }
@@ -852,6 +853,7 @@ $('#copy').addEventListener('click', async () => {
 });
 
 function loadExample() {
+  logExampleAt = Date.now();
   STATE.sex = 'M'; document.querySelectorAll('button[data-sex]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sex === 'M')));
   STATE.dial = 'none'; document.querySelectorAll('button[data-dial]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dial === 'none')));
   $('#age').value = 72; $('#weight').value = 55; $('#height').value = 160; $('#scr').value = 2.1;
@@ -885,10 +887,75 @@ $('#clear').addEventListener('click', () => {
   if (Date.now() - CLEAR.armedAt < 400) return; // กันดับเบิลคลิกล้างทันที
   disarmClear(); clearAll();
 });
+/* ---------- เก็บข้อมูลการใช้งาน (พี่ตอบ ก 2026-11-09) ชีต DoseLogic บันทึกการใช้งาน แท็บ คนเข้า และ Renal กรอก (Code.gs ในโฟลเดอร์ DoseLogic-หน้าแรก)
+   ไม่ส่งชื่อ HN อายุ วันที่ น้ำหนัก ส่วนสูง SCr ส่งยา 1 ตัวต่อ 1 แถว เมื่อตัวเลขนิ่ง 8 วินาที และตอนกดคัดลอก
+   ปิดเองเมื่อเปิดจากไฟล์ในเครื่อง ใน Chrome อัตโนมัติ (ทดสอบ ถ่ายรูปคู่มือ) และเมื่อมี ?nolog ในลิงก์ ---------- */
+const LOG_URL = 'https://script.google.com/macros/s/AKfycbyelczLFGoo5j3icdHnCxg07gW3FbS3s95XX7grzbulcAfHgzEh0SByhl44W-89bs580A/exec';
+const LOG_VER = '0.1';
+let logExampleAt = 0, logUserAt = 0;
+const logPend = { timer: 0, last: '', rows: null };
+function logOn() {
+  return !!LOG_URL && location.protocol === 'https:' && !navigator.webdriver
+    && !/HeadlessChrome/.test(navigator.userAgent) && !/[?&]nolog\b/.test(location.search);
+}
+function logDevice() {
+  try {
+    let id = localStorage.getItem('dl-dev');
+    if (!id) { id = Math.random().toString(36).slice(2, 10); localStorage.setItem('dl-dev', id); }
+    return id;
+  } catch { return ''; }
+}
+function logSend(kind, data) {
+  if (!logOn()) return;
+  try {
+    const body = JSON.stringify(Object.assign({ v: 1, kind, dev: logDevice(), ver: LOG_VER }, data));
+    fetch(LOG_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body }).catch(() => {});
+  } catch { /* ห้ามขวางหน้าเว็บ */ }
+}
+function logVisit() {
+  if (logOn()) { const n = document.getElementById('logNotice'); if (n) n.hidden = false; }
+  let ref = 'เปิดตรง';
+  try { ref = window.self !== window.top ? 'ฝังใน Sites' : (document.referrer ? new URL(document.referrer).hostname : 'เปิดตรง'); } catch { ref = 'ฝังใน Sites'; }
+  logSend('visit', { tool: 'renal', w: window.innerWidth, ref });
+}
+const LOG_STATUS = { ok: 'ตรงแล้ว', high: 'สูงกว่า', low: 'ต่ำกว่า', split: 'ช่วงห่างต่าง', review: 'ฟอกเลือด เทียบเอง', none: 'ยังไม่รองรับ' };
+// แถวของยาแต่ละตัวจากผลล่าสุด ค่าของผู้ป่วยที่ส่งมีแค่ CrCl การฟอกไต และชนิดน้ำหนักในสูตร
+function logRows(k, rows) {
+  const none = k.dial === 'none';
+  return rows.filter(x => x.res.ok).map(({ item, res }) => {
+    const D = DRUGS[item.drug], full = res.nodata ? '' : regText(item.drug, res.reg);
+    return {
+      dial: none ? 'ไม่ฟอก' : k.dial, crcl: none ? k.crcl : '', crclNorm: none && item.drug.startsWith('acyclovir') ? k.crclNorm : '',
+      wkey: none ? k.key : '', nDrugs: rows.length, drug: DRUG_LABEL[item.drug],
+      ordered: `${doseStr(item.drug, item.ordered.d)} ${qTxt(item.ordered.q)}`,
+      usual: D.unit === 'mg/kg' ? `${fmtDose(item.usual.d)} mg/kg ${qTxt(item.usual.q)}` : `${doseStr(item.drug, item.usual.d)} ${qTxt(item.usual.q)}`,
+      rec: res.nodata ? 'ยังไม่รองรับ' : (full.startsWith(`${D.name} `) ? full.slice(D.name.length + 1) : full),
+      status: res.nodata ? 'ยังไม่รองรับ' : (LOG_STATUS[res.status] || res.status),
+      choices: res.choices.map(c => `${c.key}=${c.value}`).join(' '),
+      edited: !!(res.reg && res.reg.edited), flags: res.flags.map(f => f.color).join(' '),
+    };
+  });
+}
+function logQueue(rows) {
+  logPend.rows = rows;
+  clearTimeout(logPend.timer);
+  logPend.timer = setTimeout(() => {
+    const key = JSON.stringify(logPend.rows);
+    if (!logPend.rows || !logPend.rows.length || key === logPend.last) return;
+    logPend.last = key;
+    for (const r of logPend.rows) logSend('renal', Object.assign({ event: 'คำนวณ', example: logExampleAt > logUserAt }, r));
+  }, 8000);
+}
+function logStop() { clearTimeout(logPend.timer); logPend.rows = null; }
+function logCopy() { if (logPend.rows) for (const r of logPend.rows) logSend('renal', Object.assign({ event: 'คัดลอก note', example: logExampleAt > logUserAt }, r)); }
+document.addEventListener('input', e => { if (e.isTrusted) logUserAt = Date.now(); }, true);
+document.addEventListener('change', e => { if (e.isTrusted) logUserAt = Date.now(); }, true);
+
 $('#assessDate').value = todayISO(); $('#scrDate').value = todayISO();
 STATE.items = [newItem('cefazolin')];
 renderCards();
 if (/[?&]example=1\b/.test(location.search)) loadExample();
+logVisit();
 </script>
 </body>
 </html>
