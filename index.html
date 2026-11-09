@@ -38,6 +38,11 @@
   .header-icon svg { width: 24px; height: 24px; }
   .header h1 { font-size: var(--fs-page); font-weight: 800; line-height: 1.25; }
   .header p { font-size: var(--fs-cap); }
+  .header-inner > div:not(.header-icon) { min-width: 0; }
+  /* ปุ่มคู่มือมุมขวาบน เห็นตั้งแต่เปิดหน้า แบบเดียวกับ ATB และ Drip (พี่ขอ 2026-11-09) เปิดแท็บใหม่ ค่าที่กรอกในกรอบ Sites ไม่หาย */
+  .manual-btn { margin-left: auto; flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--label); color: var(--ink); font-weight: 700; font-size: var(--fs-sm); text-decoration: none; }
+  .manual-btn:hover { background: #e3e8e4; }
+  .manual-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 
   main { max-width: 760px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
   #drugList { display: flex; flex-direction: column; gap: 16px; }
@@ -162,6 +167,7 @@
       <h1>Renal Dose Calculator</h1>
       <p>ปรับขนาดยาตามการทำงานของไต ผู้ป่วยใน สำหรับเภสัชกร</p>
     </div>
+    <a class="manual-btn" href="manual/" target="_blank" rel="noopener">คู่มือ</a>
   </div>
 </header>
 
